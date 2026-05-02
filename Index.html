@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Market Scanner 📊</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#07090f;color:#e6edf3;font-family:Georgia,serif}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#1c2333;border-radius:99px}
+button{font-family:monospace;cursor:pointer;border:none}button:hover{opacity:.85}
+a{color:inherit;text-decoration:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useCallback}=React;
+const AV_KEY="7OZVW5BKZO2JEG40";
+const BASE="https://www.alphavantage.co/query";
+const TICKERS=["SPY","SPX","IWM","GOOGL","MU","MSFT","TSLA","NVDA","META"];
+const C={bg:"#07090f",surface:"#0d1117",border:"#1c2333",bull:"#00e676",bear:"#ff1744",neutral:"#ffab00",text:"#e6edf3",muted:"#8b949e",dim:"#30363d",blue:"#4d9cf8"};
+const sc=s=>s>=7?C.bull:s<=4?C.bear:C.neutral;
+const pc=p=>p==="CALL"?C.bull:p==="PUT"?C.bear:C.neutral;
+
+async function q(ticker){
+  if(ticker==="SPX")return null;
+  try{
+    const r=await fetch(`${BASE}?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${AV_KEY}`);
+    const j=await r.json();const d=j["Global Quote"];
+    if(!d||!d["05. price"])return null;
+    return{price:parseFloat(d["05. price"]).toFixed(2),pct:d["10. change percent"]?.replace("%","").trim(),high:parseFloat(d["03. high"]).toFixed(2),low:parseFloat(d["04. low"]).toFixed(2),open:parseFloat(d["02. open"]).toFixed(2),vol:parseInt(d["06. volume"]).toLocaleString()};
+  }catch{return null;}
+}
+async function sent(ticker){
+  try{
+    const r=await fetch(`${BASE}?function=NEWS_SENTIMENT&tickers=${ticker}&limit=5&sort=LATEST&apikey=${AV_KEY}`);
+    const j=await r.json();if(!j.feed?.length)return null;
+    const arts=j.feed.slice(0,3);
+    const avg=arts.reduce((s,a)=>{const t=a.ticker_sentiment?.find(x=>x.ticker===ticker);return s+(t?parseFloat(t.ticker_sentiment_score):0);},0)/arts.length;
+    return{score:avg,label:avg>0.15?"Bullish":avg<-0.15?"Bearish":"Neutral",arts};
+  }catch{return null;}
+}
+async function pcr(ticker){
+  try{const r=await fetch(`${BASE}?function=REALTIME_PUT_CALL_RATIO&symbol=${ticker}&apikey=${AV_KEY}`);const j=await r.json();return j.put_call_ratio?parseFloat(j.put_call_ratio):null;}catch{return null;}
+}
+async function moversAPI(){
+  try{const r=await fetch(`${BASE}?function=TOP_GAINERS_LOSERS&apikey=${AV_KEY}`);const j=await r.json();return{g:j.top_gainers?.slice(0,5)||[],l:j.top_losers?.slice(0,5)||[],a:j.most_actively_traded?.slice(0,5)||[]};}catch{return null;}
+}
+async function newsAPI(){
+  try{const r=await fetch(`${BASE}?function=NEWS_SENTIMENT&topics=financial_markets,earnings&limit=8&sort=LATEST&apikey=${AV_KEY}`);const j=await r.json();return j.feed?.slice(0,8)||[];}catch{return null;}
+}
+function mktOpen(){const e=new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));const h=e.getHours(),m=e.getMinutes(),d=e.getDay();return d>=1&&d<=5&&(h>9||(h===9&&m>=30))&&h<16;}
+
+const META={
+  date:"Friday, May 1, 2026",
+  themes:["S&P 500 ABOVE 7,200 FIRST TIME EVER","GOOGL ALL-TIME HIGH +10%","RUSSELL 2000 +2.2%","AAPL EARNINGS BEAT","NVDA -4.6% CHIP COMPETITION","MU AI MEMORY SURGE"],
+  reasoning:"Historic session — S&P 500 closed above 7,200 for the first time ever. GOOGL hit an all-time high on monster Q1: revenue +22%, Google Cloud +63% to $20B. Russell 2000 +2.21% — small caps leading. VIX -10.2% to 16.89. MU near ATH, AAPL beat earnings. NVDA -4.63% on custom chip competition fears. META/MSFT recovering from capex selloffs.",
+  snap:[{l:"S&P 500",v:"7,209",c:"+1.02%",b:true},{l:"DOW",v:"49,652",c:"+1.62%",b:true},{l:"NASDAQ",v:"24,892",c:"+0.89%",b:true},{l:"RUSSELL 2K",v:"2,799",c:"+2.21%",b:true},{l:"VIX",v:"16.89",c:"-10.2%",b:true},{l:"OIL WTI",v:"$110.31",c:"↑ Iran",b:false}],
+};
+
+const AN={
+  GOOGL:{name:"Alphabet Inc.",sector:"Search/Cloud/AI",sent:"Bullish",score:10,s1:"$375",s2:"$360",r1:"$390",r2:"$400",cat:"ALL-TIME HIGH. Q1 blowout — Cloud +63% to $20B, revenue +22%. ARK bought 84K shares.",news:"GOOGL hit ATH $386.05. Q1 revenue $109.9B (+22%). Google Cloud $20B (+63%), backlog $460B. Market cap $4.67T closing in on NVDA. Compute constrained = demand exceeds supply = bullish.",buzz:"WSB going wild — 'GOOGL just proved AI is a Google story.' ARK buying = major sentiment shift. Cloud backlog $460B is the key stat.",setup:"AT ALL-TIME HIGH. Dips to $375–$378 = buy zone. Break above $390 opens $400+. Stop below $368.",putCall:"CALL",conf:88,play:"May $390 Call or June $395 Call for more room. Highest confidence play on the watchlist.",risk:"Low"},
+  SPY:{name:"SPDR S&P 500 ETF",sector:"Broad Market ETF",sent:"Bullish",score:9,s1:"$715",s2:"$700",r1:"$730",r2:"$745",cat:"Historic close — S&P 500 above 7,200 for first time ever. GOOGL +10%, AAPL beat, VIX -10.2%.",news:"S&P 500 made history closing above 7,200. 73% of S&P companies beating EPS. Dow +790 pts. Oil at $110+ on Iran blockade is main macro risk.",buzz:"WSB broadly bullish. VIX collapsing to 16.89 = complacency. Bears note net buy volume declining since Apr 20 but price says otherwise.",setup:"New ATH territory. Dips to $715–$717 = buy zones. Break above $721 targets $730. Stop below $710.",putCall:"CALL",conf:75,play:"May $725 Call — new ATH territory + GOOGL/AAPL tailwinds. Small size given oil/macro risk.",risk:"Medium"},
+  SPX:{name:"S&P 500 Index",sector:"Broad Market Index",sent:"Bullish",score:9,s1:"7,150",s2:"7,050",r1:"7,250",r2:"7,300",cat:"First ever close above 7,200. GOOGL, AAPL, Russell all green. VIX crushing lower.",news:"Historic session. SPX cleared 7,200 for the first time. 73% earnings beat rate. GOOGL +10% was the hero. Fed hold expected. Oil above $110 is inflation wildcard.",buzz:"Bull sentiment dominant. SPX calls heavily bid into close. New ATH = new support levels being established.",setup:"Above 7,150 = uptrend intact. Target 7,250 then 7,300. SPX May 7,250 calls for momentum.",putCall:"CALL",conf:73,play:"May 7,250 Call — trend + GOOGL + record territory. Tight stop at 7,090.",risk:"Medium"},
+  IWM:{name:"iShares Russell 2000 ETF",sector:"Small Cap ETF",sent:"Bullish",score:9,s1:"$274",s2:"$268",r1:"$279.80",r2:"$285",cat:"52-week high $279.79 just $1.82 away. Russell 2000 +2.21% this week. Small caps leading.",news:"IWM +13.56% past month. 52-week high is $279.79. Small caps benefit from reshoring, AI infrastructure, cheaper valuations (P/E 18x vs S&P 22x).",buzz:"TradingView: IWM printed High Volume Reversal Bar — institutional buying confirmed. Strong buy signal on all timeframes.",setup:"ONE TICK from new 52-week high. Break $279.80 = new ATH territory, targets $285–$290. Dip to $274 = aggressive buy zone.",putCall:"CALL",conf:82,play:"May 8 $280 Call (~$1.50–$2.00) — near 52-week high breakout. Size up. Stop if IWM breaks $274 daily close.",risk:"Low"},
+  MU:{name:"Micron Technology",sector:"Memory/AI Infrastructure",sent:"Bullish",score:8,s1:"$480",s2:"$460",r1:"$520",r2:"$531",cat:"AI memory demand exploding. Q2 EPS $12.20 crushed $8.60 estimate — 42% beat. Earnings June 24.",news:"MU Q2 EPS $12.20 vs $8.60 est — 42% beat. Revenue $23.86B vs $19.97B est. Next earnings June 24, est EPS $18.94. SOX index logged 17 straight green sessions — record.",buzz:"WSB very bullish. 'GOOGL raising capex to $190B = MU prints money.' Power Inflow alert = institutional accumulation.",setup:"Entry $488–$500 zone, target $520 then ATH $531. Stop below $475. Earnings June 24 est $18.94 EPS is a monster catalyst.",putCall:"CALL",conf:76,play:"June $510 Call — AI memory supercycle. Give it room for the run to ATH $531. Earnings June 24 is next big catalyst.",risk:"Medium"},
+  MSFT:{name:"Microsoft",sector:"Cloud/AI",sent:"Bullish",score:7,s1:"$416",s2:"$408",r1:"$430",r2:"$445",cat:"Recovering from post-earnings capex selloff. Strong Q3 — Azure accelerating. Wells Fargo PT $625.",news:"MSFT digesting post-earnings selloff. Q3 beat every metric — Azure re-accelerated. CFO raised capex to $190B. Wells Fargo PT $625, Mizuho Buy $515.",buzz:"507 WSB mentions. 'Buy the dip' consensus. Wells Fargo and Mizuho bullish. GOOGL cloud beat validates MSFT Azure thesis.",setup:"Recovery play. $416 key support held. Entry $416–$422, target $430–$435. Stop $408.",putCall:"CALL",conf:68,play:"June $430 Call — strong Azure + AI story. Capex selloff was overreaction.",risk:"Low"},
+  TSLA:{name:"Tesla",sector:"EV/Autonomy/AI",sent:"Neutral",score:5,s1:"$365",s2:"$352",r1:"$385",r2:"$400",cat:"Musk court testimony ongoing. Semi production started. Low volume selloff = no conviction.",news:"TSLA -0.86% on low volume. Musk called himself 'fool' for funding OpenAI. Semi truck on production line. 1X planning 100K humanoid robots in CA. China orders -1%.",buzz:"Mixed Reddit. Bulls: Semi + Optimus long game. Bears: Musk distraction, negative FCF, China weakness. Well below avg volume.",setup:"Range-bound $365–$385. Break above $390 needed for conviction call. Low volume = wait or straddle.",putCall:"NEUTRAL",conf:52,play:"Straddle $372 — too many binary events. Wait for break above $390 before directional play.",risk:"High"},
+  NVDA:{name:"NVIDIA",sector:"Semiconductors/AI",sent:"Neutral",score:5,s1:"$198",s2:"$188",r1:"$208",r2:"$217",cat:"Two-day selloff on Amazon Trainium + Google TPU competition fears. Earnings May 20.",news:"NVDA -4.63% for 2nd day. Amazon Trainium booming. GOOGL confirmed selling TPUs externally. China B300 servers at $1M. Analyst avg PT $266 (+33% upside). Earnings May 20.",buzz:"#3 WSB 419 mentions. 'Lower high vs Oct 2025' bear case. Long-term bulls say $266 PT intact.",setup:"Critical support $198–$200. Hold $198 = bounce to $208. Break $196 = $188 gap fill. Earnings May 20 = real reset.",putCall:"PUT",conf:63,play:"May $194 Put — competition narrative + technical lower high. Stop if $205 reclaimed on volume.",risk:"Medium"},
+  META:{name:"Meta Platforms",sector:"Social Media/AI",sent:"Neutral",score:5,s1:"$618",s2:"$595",r1:"$645",r2:"$660",cat:"Dead-cat bounce after -7.8% post-earnings selloff. $125B–$145B capex overhang unchanged.",news:"META bouncing on weak volume. Q1 revenue +33% but market punishing $145B capex. GOOGL has visible Cloud ROI, META's AI ROI less clear — that's why same capex = different market reaction.",buzz:"Reddit split — 'Same capex as GOOGL, why punished?' vs 'GOOGL has Cloud ROI, META doesn't yet.' Below-avg volume = weak bounce.",setup:"Bounce to $635–$645 = fade/short opportunity. Key support $618. Break $615 opens $595.",putCall:"PUT",conf:62,play:"May $618 Put — fade this weak bounce. Capex overhang + GOOGL comparison = continued pressure. Target $595.",risk:"High"},
+};
+
+function Tag({label,color}){return <span style={{fontSize:9,letterSpacing:1.5,fontWeight:700,background:color+"18",color,border:`1px solid ${color}44`,borderRadius:2,padding:"2px 7px",whiteSpace:"nowrap"}}>{label}</span>;}
+function Lvl({label,val,color}){return <div style={{background:color+"0a",border:`1px solid ${color}22`,borderRadius:3,padding:"8px 12px",flex:1,minWidth:80}}><div style={{fontSize:8,color:color+"88",letterSpacing:2,marginBottom:4}}>{label}</div><div style={{fontSize:13,color,fontFamily:"monospace",fontWeight:600}}>{val}</div></div>;}
+function ScoreBar({score}){const color=sc(score);return <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:4,background:C.border,borderRadius:99}}><div style={{width:`${score*10}%`,height:"100%",background:color,borderRadius:99,boxShadow:`0 0 8px ${color}88`,transition:"width 1s ease"}}/></div><span style={{fontSize:11,color,fontFamily:"monospace",fontWeight:700,minWidth:32}}>{score}/10</span></div>;}
+function ConfBar({pct,type}){const color=pc(type);return <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:6,background:C.border,borderRadius:99}}><div style={{width:`${pct}%`,height:"100%",background:color,borderRadius:99,boxShadow:`0 0 8px ${color}88`,transition:"width 1s ease"}}/></div><span style={{fontSize:12,color,fontFamily:"monospace",fontWeight:800,minWidth:40}}>{pct}%</span></div>;}
+
+function Card({ticker,quote,sentiment,ratio,idx}){
+  const[open,setOpen]=useState(false);
+  const a=AN[ticker];if(!a)return null;
+  const scolor=sc(a.score);const pcolor=pc(a.putCall);
+  const isATH=a.score===10;
+  const pct=quote?.pct||null;const pos=pct?parseFloat(pct)>=0:false;const neg=pct?parseFloat(pct)<0:false;
+  let conf=a.conf;
+  if(ratio!=null){if(a.putCall==="CALL"&&ratio<0.8)conf=Math.min(95,conf+5);if(a.putCall==="PUT"&&ratio>1.2)conf=Math.min(95,conf+5);}
+  const lscore=sentiment?Math.max(1,Math.min(10,Math.round(a.score+sentiment.score*2))):a.score;
+  const lsent=sentiment?.label||a.sent;
+  return(
+    <div onClick={()=>setOpen(o=>!o)} style={{background:isATH?"#0a1a0a":C.surface,border:`1px solid ${open?scolor+"55":isATH?C.bull+"44":C.border}`,borderRadius:6,marginBottom:10,cursor:"pointer",transition:"all 0.3s",boxShadow:open?`0 0 24px ${scolor}15`:isATH?`0 0 16px ${C.bull}22`:"none",animation:`fadeUp 0.35s ease ${idx*0.05}s both`,overflow:"hidden"}}>
+      <div style={{padding:"14px 18px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+              <span style={{fontSize:18,fontWeight:800,color:C.text,fontFamily:"monospace",letterSpacing:1}}>${ticker}</span>
+              <Tag label={lsent.toUpperCase()} color={sc(lscore)}/>
+              <Tag label={`${a.putCall} ${conf}%`} color={pcolor}/>
+              {isATH&&<Tag label="🔥 ATH" color={C.bull}/>}
+              {quote&&<Tag label="● LIVE" color={C.bull}/>}
+              <Tag label={`${a.risk.toUpperCase()} RISK`} color={a.risk==="High"?C.bear:a.risk==="Low"?C.bull:C.neutral}/>
+            </div>
+            <div style={{fontSize:11,color:C.muted}}>{a.name} · {a.sector}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:C.text}}>{quote?`$${quote.price}`:"—"}</div>
+            {pct&&<div style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:pos?C.bull:neg?C.bear:C.muted}}>{pos?"+":""}{pct}%</div>}
+            {quote?.high&&<div style={{fontSize:9,color:C.dim,marginTop:2}}>H:${quote.high} L:${quote.low}</div>}
+          </div>
+        </div>
+        <ScoreBar score={lscore}/>
+        <div style={{marginTop:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+            <span style={{fontSize:9,color:C.dim,letterSpacing:2}}>{a.putCall} CONFIDENCE</span>
+            {ratio&&<span style={{fontSize:9,color:C.dim}}>P/C: <span style={{color:ratio>1?C.bear:C.bull}}>{ratio.toFixed(2)}</span></span>}
+          </div>
+          <ConfBar pct={conf} type={a.putCall}/>
+        </div>
+        <div style={{fontSize:11,color:C.muted,marginTop:9,lineHeight:1.6}}><span style={{color:scolor+"cc"}}>▸ </span>{a.cat}</div>
+      </div>
+      {open&&(
+        <div style={{borderTop:`1px solid ${C.border}`,padding:"16px 18px"}}>
+          <div style={{background:pcolor+"0a",border:`1px solid ${pcolor}33`,borderRadius:4,padding:"11px 14px",marginBottom:14}}>
+            <div style={{fontSize:9,color:pcolor+"99",letterSpacing:2,marginBottom:5}}>OPTION PLAY · {a.putCall} · {conf}% CONFIDENCE</div>
+            <div style={{fontSize:13,color:pcolor,fontFamily:"monospace",fontWeight:600,lineHeight:1.6}}>{a.play}</div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:8}}>KEY PRICE LEVELS</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <Lvl label="SUPPORT 1" val={a.s1} color={C.bull}/><Lvl label="SUPPORT 2" val={a.s2} color={C.bull}/>
+              <Lvl label="RESIST 1" val={a.r1} color={C.bear}/><Lvl label="RESIST 2" val={a.r2} color={C.bear}/>
+            </div>
+          </div>
+          <div style={{background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:4,padding:"11px 14px",marginBottom:14}}>
+            <div style={{fontSize:9,color:C.blue+"99",letterSpacing:2,marginBottom:5}}>TRADE SETUP</div>
+            <div style={{fontSize:12,color:"#a8ccf0",lineHeight:1.7}}>{a.setup}</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
+            <div>
+              <div style={{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:6}}>NEWS & CATALYST</div>
+              <div style={{fontSize:11,color:C.muted,lineHeight:1.7}}>{a.news}</div>
+              {sentiment?.arts?.length>0&&<div style={{marginTop:8}}>
+                <div style={{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:5}}>LIVE NEWS</div>
+                {sentiment.arts.map((art,i)=><a key={i} href={art.url} target="_blank" rel="noreferrer" style={{display:"block",background:"#0a0a0a",border:`1px solid ${C.border}`,borderRadius:3,padding:"7px 10px",marginBottom:5}}><div style={{fontSize:10,color:C.muted,lineHeight:1.5}}>{art.title?.slice(0,80)}...</div><div style={{fontSize:9,color:C.dim,marginTop:2}}>{art.source}</div></a>)}
+              </div>}
+            </div>
+            <div>
+              <div style={{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:6}}>SOCIAL BUZZ</div>
+              <div style={{fontSize:11,color:C.muted,lineHeight:1.7}}>{a.buzz}</div>
+            </div>
+          </div>
+          {quote?.vol&&<div style={{borderTop:`1px solid ${C.border}`,paddingTop:10}}><span style={{fontSize:9,color:C.dim,letterSpacing:2}}>VOLUME  </span><span style={{fontSize:11,color:C.neutral}}>📊 {quote.vol}</span>{quote.open&&<span style={{fontSize:10,color:C.dim,marginLeft:16}}>Open: ${quote.open}</span>}</div>}
+        </div>
+      )}
+      <div style={{textAlign:"center",fontSize:10,color:C.dim,paddingBottom:6}}>{open?"▲ collapse":"▼ expand full analysis"}</div>
+    </div>
+  );
+}
+
+function App(){
+  const[quotes,setQuotes]=useState({});
+  const[sents,setSents]=useState({});
+  const[ratios,setRatios]=useState({});
+  const[news,setNews]=useState([]);
+  const[movs,setMovs]=useState(null);
+  const[lastR,setLastR]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const[view,setView]=useState("all");
+  const[tab,setTab]=useState("scanner");
+  const[open,setOpen]=useState(mktOpen());
+
+  const refresh=useCallback(async()=>{
+    setLoading(true);setOpen(mktOpen());
+    const qr={};
+    for(const t of TICKERS.filter(x=>x!=="SPX")){const r=await q(t);if(r)qr[t]=r;await new Promise(x=>setTimeout(x,350));}
+    setQuotes(qr);
+    const sr={};
+    for(const t of ["GOOGL","MU","MSFT","TSLA","NVDA","META"]){const s=await sent(t);if(s)sr[t]=s;await new Promise(x=>setTimeout(x,350));}
+    setSents(sr);
+    const rr={};
+    for(const t of ["SPY","IWM","NVDA","META","TSLA"]){const p=await pcr(t);if(p!=null)rr[t]=p;await new Promise(x=>setTimeout(x,350));}
+    setRatios(rr);
+    const[n,m]=await Promise.all([newsAPI(),moversAPI()]);
+    if(n)setNews(n);if(m)setMovs(m);
+    setLastR(new Date());setLoading(false);
+  },[]);
+
+  useEffect(()=>{refresh();const id=setInterval(()=>{if(mktOpen())refresh();},5*60*1000);return()=>clearInterval(id);},[refresh]);
+
+  const sorted=[...TICKERS].sort((a,b)=>(AN[b]?.score||5)-(AN[a]?.score||5));
+  const filt=view==="all"?sorted:view==="call"?sorted.filter(t=>AN[t]?.putCall==="CALL"):view==="put"?sorted.filter(t=>AN[t]?.putCall==="PUT"):sorted.filter(t=>AN[t]?.putCall==="NEUTRAL");
+  const callC=TICKERS.filter(t=>AN[t]?.putCall==="CALL").length;
+  const putC=TICKERS.filter(t=>AN[t]?.putCall==="PUT").length;
+  const neutC=TICKERS.filter(t=>AN[t]?.putCall==="NEUTRAL").length;
+
+  return(
+    <div style={{minHeight:"100vh",background:C.bg,color:C.text}}>
+      {/* Header */}
+      <div style={{borderBottom:`1px solid ${C.border}`,padding:"0 20px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:C.bg,zIndex:100}}>
+        <div style={{padding:"14px 0"}}>
+          <div style={{fontSize:9,letterSpacing:4,color:C.dim,marginBottom:2}}>PREMARKET INTELLIGENCE</div>
+          <div style={{fontSize:20,fontWeight:700,color:C.text}}>Market Scanner <span style={{fontSize:11,fontFamily:"monospace",color:open?C.bull:C.neutral,animation:open?"pulse 1.5s infinite":"none"}}>● {open?"LIVE":"CLOSED"}</span></div>
+        </div>
+        <div style={{display:"flex",gap:12,alignItems:"center"}}>
+          {lastR&&<div style={{textAlign:"right"}}><div style={{fontSize:9,color:C.dim}}>UPDATED</div><div style={{fontSize:10,color:C.muted,fontFamily:"monospace"}}>{lastR.toLocaleTimeString()}</div></div>}
+          <button onClick={refresh} disabled={loading} style={{background:loading?C.surface:"#00e67618",border:`1px solid ${loading?C.border:C.bull+"55"}`,color:loading?C.dim:C.bull,borderRadius:3,padding:"7px 14px",fontSize:10,fontWeight:700,letterSpacing:1}}>
+            {loading?<span style={{display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:9,height:9,border:`2px solid ${C.dim}`,borderTopColor:C.bull,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>LOADING</span>:"⟳ REFRESH"}
+          </button>
+        </div>
+      </div>
+      {/* Nav Tabs */}
+      <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,padding:"0 20px"}}>
+        {[{k:"scanner",l:"📊 SCANNER"},{k:"news",l:"📰 LIVE NEWS"},{k:"movers",l:"🔥 TOP MOVERS"}].map(t=>(
+          <button key={t.k} onClick={()=>setTab(t.k)} style={{background:"none",color:tab===t.k?C.text:C.dim,fontSize:10,letterSpacing:2,padding:"12px 16px",borderBottom:tab===t.k?`2px solid ${C.bull}`:"2px solid transparent"}}>{t.l}</button>
+        ))}
+      </div>
+      {/* Theme Banner */}
+      <div style={{background:"#0a1628",borderBottom:"1px solid #1e3a5f",padding:"12px 20px"}}>
+        <div style={{fontSize:9,color:C.blue+"99",letterSpacing:2,marginBottom:5}}>TODAY'S THEMES · {META.date}</div>
+        <div style={{fontSize:11,color:"#a8ccf0",lineHeight:1.7,marginBottom:8}}>{META.reasoning}</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{META.themes.map(t=><Tag key={t} label={t} color={C.blue}/>)}</div>
+      </div>
+
+      <div style={{padding:"20px"}}>
+        {tab==="scanner"&&<>
+          <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+            {META.snap.map(m=><div key={m.l} style={{flex:1,minWidth:90,background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"8px 12px"}}><div style={{fontSize:8,color:C.dim,letterSpacing:2,marginBottom:3}}>{m.l}</div><div style={{fontSize:14,fontWeight:700,fontFamily:"monospace",color:C.text}}>{m.v}</div><div style={{fontSize:10,color:m.b?C.bull:C.bear,fontFamily:"monospace"}}>{m.c}</div></div>)}
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap"}}>
+            {[{k:"all",l:`ALL (${TICKERS.length})`,c:C.text},{k:"call",l:`📈 CALLS (${callC})`,c:C.bull},{k:"put",l:`📉 PUTS (${putC})`,c:C.bear},{k:"neutral",l:`〰️ NEUTRAL (${neutC})`,c:C.neutral}].map(f=>(
+              <button key={f.k} onClick={()=>setView(f.k)} style={{background:view===f.k?f.c+"22":C.surface,border:`1px solid ${view===f.k?f.c+"66":C.border}`,color:view===f.k?f.c:C.muted,borderRadius:3,padding:"7px 16px",fontSize:10,fontWeight:700,letterSpacing:1.5}}>{f.l}</button>
+            ))}
+          </div>
+          {filt.map((t,i)=><Card key={t} ticker={t} quote={quotes[t]} sentiment={sents[t]} ratio={ratios[t]} idx={i}/>)}
+        </>}
+
+        {tab==="news"&&<div>
+          <div style={{fontSize:9,color:C.dim,letterSpacing:3,marginBottom:14}}>LIVE MARKET HEADLINES</div>
+          {news.length===0?<div style={{color:C.dim,fontSize:12}}>{loading?"Loading...":"No data yet — hit Refresh."}</div>
+          :news.map((a,i)=><a key={i} href={a.url} target="_blank" rel="noreferrer" style={{display:"block",background:C.surface,border:`1px solid ${C.border}`,borderRadius:5,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:12,color:C.text,lineHeight:1.6,marginBottom:6}}>{a.title}</div>
+            <div style={{display:"flex",gap:12}}>
+              <span style={{fontSize:10,color:C.blue}}>{a.source}</span>
+              <span style={{fontSize:10,color:C.dim}}>{a.time_published?.slice(0,8)}</span>
+              {a.overall_sentiment_label&&<span style={{fontSize:9,color:a.overall_sentiment_label==="Bullish"?C.bull:a.overall_sentiment_label==="Bearish"?C.bear:C.neutral}}>{a.overall_sentiment_label}</span>}
+            </div>
+          </a>)}
+        </div>}
+
+        {tab==="movers"&&<div>
+          {!movs?<div style={{color:C.dim,fontSize:12}}>{loading?"Loading...":"No data yet — hit Refresh."}</div>
+          :[{t:"🚀 TOP GAINERS",d:movs.g,c:C.bull},{t:"📉 TOP LOSERS",d:movs.l,c:C.bear},{t:"⚡ MOST ACTIVE",d:movs.a,c:C.neutral}].map(s=>(
+            <div key={s.t} style={{marginBottom:24}}>
+              <div style={{fontSize:9,color:s.c,letterSpacing:3,marginBottom:10}}>{s.t}</div>
+              {s.d.map((x,i)=><div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><span style={{fontSize:14,fontWeight:700,fontFamily:"monospace",color:C.text,marginRight:10}}>{x.ticker}</span><span style={{fontSize:11,color:C.muted}}>${x.price}</span></div><span style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:s.c}}>{x.change_percentage}</span></div>)}
+            </div>
+          ))}
+        </div>}
+
+        <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`,fontSize:10,color:C.dim,lineHeight:1.8}}>
+          <div style={{marginBottom:4}}>📡 Live data: Alpha Vantage API · Research: Yahoo Finance, Robinhood, CNBC, TradingView, WSB</div>
+          <div style={{marginBottom:4}}>🔄 Auto-refreshes every 5 min during market hours (9:30am–4:00pm ET Mon–Fri)</div>
+          <div>⚠️ Not financial advice. Options trading involves substantial risk. Do your own research.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
