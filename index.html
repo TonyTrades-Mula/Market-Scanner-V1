@@ -1,600 +1,352 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>TonyTrades Scanner</title>
+<title>TonyTrades Market Scanner</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#07090f;color:#e6edf3;font-family:Georgia,serif;padding-bottom:40px}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#1c2333;border-radius:99px}
-button{font-family:monospace;cursor:pointer;border:none}button:hover{opacity:.85}
-a{color:inherit;text-decoration:none}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-.header{border-bottom:1px solid #1c2333;padding:0 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#07090f;z-index:100}
-.header-left{padding:12px 0}
-.header-title{font-size:19px;font-weight:700;color:#e6edf3}
-.header-sub{font-size:9px;letter-spacing:4px;color:#30363d;margin-bottom:2px}
-.header-status{font-size:9px;color:#30363d;margin-top:2px}
-.refresh-btn{border-radius:3px;padding:7px 12px;font-size:10px;font-weight:700;letter-spacing:1px;background:#00e67618;border:1px solid #00e67655;color:#00e676}
-.refresh-btn:disabled{background:#0d1117;border-color:#1c2333;color:#30363d;cursor:not-allowed}
-
-.tabs{display:flex;border-bottom:1px solid #1c2333;padding:0 20px;overflow-x:auto}
-.tab{background:none;color:#30363d;font-size:10px;letter-spacing:1px;padding:11px 14px;border-bottom:2px solid transparent;white-space:nowrap}
-.tab.active{color:#e6edf3;border-bottom-color:#00e676}
-
-.banner{background:#0a1628;border-bottom:1px solid #1e3a5f;padding:10px 20px}
-.banner-label{font-size:9px;color:#4d9cf866;letter-spacing:2px;margin-bottom:5px}
-.banner-text{font-size:11px;color:#a8ccf0;line-height:1.7;margin-bottom:8px}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#1c2333;border-radius:99px}
+.header{background:#07090f;border-bottom:1px solid #1c2333;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.header-left .sub{font-size:9px;letter-spacing:4px;color:#30363d;margin-bottom:3px}
+.header-left .title{font-size:20px;font-weight:700;color:#e6edf3}
+.header-right{text-align:right;font-size:10px;color:#8b949e}
+.badge{display:inline-block;font-size:9px;letter-spacing:1px;font-weight:700;padding:2px 7px;border-radius:2px;border:1px solid;white-space:nowrap}
+.banner{background:#0a1628;border-bottom:1px solid #1e3a5f;padding:12px 20px}
+.banner .label{font-size:9px;color:#4d9cf866;letter-spacing:2px;margin-bottom:5px}
+.banner .text{font-size:11px;color:#a8ccf0;line-height:1.7;margin-bottom:8px}
 .themes{display:flex;flex-wrap:wrap;gap:6px}
-
 .content{padding:16px 20px}
-
-.snap-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.snap-card{flex:1;min-width:80px;background:#0d1117;border:1px solid #1c2333;border-radius:4px;padding:8px 12px}
-.snap-label{font-size:7px;color:#30363d;letter-spacing:2px;margin-bottom:2px}
-.snap-val{font-size:13px;font-weight:700;font-family:monospace;color:#e6edf3}
-.snap-chg{font-size:9px}
-
+.snap{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.snap-item{flex:1;min-width:80px;background:#0d1117;border:1px solid #1c2333;border-radius:4px;padding:8px 12px}
+.snap-item .sl{font-size:7px;color:#30363d;letter-spacing:2px;margin-bottom:2px}
+.snap-item .sv{font-size:13px;font-weight:700;font-family:monospace;color:#e6edf3}
+.snap-item .sc{font-size:9px}
 .filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.filter-btn{border-radius:3px;padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:1.5px;background:#0d1117;border:1px solid #1c2333;color:#8b949e}
-.filter-btn.active-all{background:#e6edf322;border-color:#e6edf366;color:#e6edf3}
-.filter-btn.active-call{background:#00e67622;border-color:#00e67666;color:#00e676}
+.filter-btn{background:#0d1117;border:1px solid #1c2333;color:#8b949e;border-radius:3px;padding:6px 14px;font-size:10px;font-weight:700;font-family:monospace;letter-spacing:1.5px;cursor:pointer}
+.filter-btn.active{background:#00e67622;border-color:#00e67666;color:#00e676}
 .filter-btn.active-put{background:#ff174422;border-color:#ff174466;color:#ff1744}
 .filter-btn.active-neutral{background:#ffab0022;border-color:#ffab0066;color:#ffab00}
-
-.card{border-radius:6px;margin-bottom:10px;cursor:pointer;overflow:hidden;animation:fadeUp 0.3s ease both;border:1px solid #1c2333;background:#0d1117;transition:border-color 0.3s,box-shadow 0.3s}
+.filter-btn.active-all{background:#e6edf322;border-color:#e6edf366;color:#e6edf3}
+.card{background:#0d1117;border:1px solid #1c2333;border-radius:6px;margin-bottom:10px;overflow:hidden;cursor:pointer}
 .card.top{background:#0a1a0a;border-color:#00e67644;box-shadow:0 0 14px #00e67622}
-.card-header{padding:14px 18px}
+.card-head{padding:14px 18px}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
 .card-tags{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.ticker{font-size:18px;font-weight:800;font-family:monospace;color:#e6edf3;letter-spacing:1px}
 .card-name{font-size:11px;color:#8b949e}
 .card-price{text-align:right}
-.card-price-val{font-size:18px;font-weight:800;font-family:monospace;color:#e6edf3}
-.card-price-chg{font-size:13px;font-family:monospace;font-weight:600}
-.card-price-hl{font-size:9px;color:#30363d;margin-top:2px}
-.card-cat{font-size:11px;color:#8b949e;margin-top:9px;line-height:1.6}
-
-.bar-wrap{display:flex;align-items:center;gap:8px}
+.price-val{font-size:18px;font-weight:800;font-family:monospace;color:#e6edf3}
+.price-chg{font-size:13px;font-family:monospace;font-weight:600}
+.price-hl{font-size:9px;color:#30363d;margin-top:2px}
+.bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .bar-track{flex:1;background:#1c2333;border-radius:99px}
-.bar-fill{border-radius:99px;transition:width 1s ease}
-.bar-label{font-family:monospace;font-weight:700}
-
-.card-body{border-top:1px solid #1c2333;padding:16px 18px}
-.option-play{border-radius:4px;padding:11px 14px;margin-bottom:14px}
-.option-label{font-size:9px;letter-spacing:2px;margin-bottom:5px}
-.option-text{font-size:13px;font-family:monospace;font-weight:600;line-height:1.6}
-
-.dp-row{margin-bottom:14px}
-.dp-label{font-size:9px;letter-spacing:2px;margin-bottom:8px;color:#b57bee}
-.dp-cards{display:flex;gap:8px;flex-wrap:wrap}
+.bar-fill{border-radius:99px;transition:width 0.8s ease}
+.bar-val{font-family:monospace;font-weight:700}
+.card-cat{font-size:11px;color:#8b949e;margin-top:9px;line-height:1.6}
+.card-body{border-top:1px solid #1c2333;padding:16px 18px;display:none}
+.card-body.open{display:block}
+.play-box{border-radius:4px;padding:11px 14px;margin-bottom:14px}
+.play-label{font-size:9px;letter-spacing:2px;margin-bottom:5px}
+.play-text{font-size:13px;font-family:monospace;font-weight:600;line-height:1.6}
+.dp-label{font-size:9px;color:#b57bee;letter-spacing:2px;margin-bottom:8px}
+.dp-cards{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .dp-card{border-radius:3px;padding:8px 12px;flex:1;min-width:100px}
 .dp-type{font-size:8px;letter-spacing:2px;margin-bottom:3px}
 .dp-level{font-size:14px;font-family:monospace;font-weight:700}
 .dp-size{font-size:9px;color:#30363d}
-
-.sweep-row{margin-bottom:14px;background:#0a0a1a;border:1px solid #4d9cf822;border-radius:3px;padding:8px 14px}
+.sweep-box{background:#0a0a1a;border:1px solid #4d9cf822;border-radius:3px;padding:8px 14px;margin-bottom:14px}
 .sweep-label{font-size:9px;color:#4d9cf888;letter-spacing:2px}
 .sweep-val{font-size:11px;color:#4d9cf8}
-
-.levels-row{margin-bottom:14px}
 .levels-label{font-size:9px;color:#30363d;letter-spacing:2px;margin-bottom:8px}
-.levels-grid{display:flex;gap:8px;flex-wrap:wrap}
+.levels-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .level-card{border-radius:3px;padding:8px 12px;flex:1;min-width:80px}
 .level-label{font-size:8px;letter-spacing:2px;margin-bottom:4px}
 .level-val{font-size:13px;font-family:monospace;font-weight:600}
-
-.setup-row{background:#0a1628;border:1px solid #1e3a5f;border-radius:4px;padding:11px 14px;margin-bottom:14px}
+.setup-box{background:#0a1628;border:1px solid #1e3a5f;border-radius:4px;padding:11px 14px;margin-bottom:14px}
 .setup-label{font-size:9px;color:#4d9cf899;letter-spacing:2px;margin-bottom:5px}
 .setup-text{font-size:12px;color:#a8ccf0;line-height:1.7}
-
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
-.section-label{font-size:9px;color:#30363d;letter-spacing:2px;margin-bottom:6px}
-.section-text{font-size:11px;color:#8b949e;line-height:1.7}
-
-.vol-row{border-top:1px solid #1c2333;padding-top:10px;display:flex;gap:20px;flex-wrap:wrap}
-.vol-item span:first-child{font-size:9px;color:#30363d;letter-spacing:1px}
-.vol-item span:last-child{font-size:11px;font-family:monospace}
-
-.card-toggle{text-align:center;font-size:10px;color:#30363d;padding-bottom:6px}
-
-.tag{font-size:9px;letter-spacing:1.2px;font-weight:700;border-radius:2px;padding:2px 7px;white-space:nowrap;border-width:1px;border-style:solid}
-.tag-sm{font-size:8px;padding:1px 5px}
-
-.congress-card{background:#0d1117;border:1px solid #1c2333;border-radius:5px;padding:12px 16px;margin-bottom:10px}
-.movers-card{background:#0d1117;border:1px solid #1c2333;border-radius:4px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-
+.sec-label{font-size:9px;color:#30363d;letter-spacing:2px;margin-bottom:6px}
+.sec-text{font-size:11px;color:#8b949e;line-height:1.7}
+.vol-row{border-top:1px solid #1c2333;padding-top:10px;display:flex;gap:16px;flex-wrap:wrap}
+.vol-label{font-size:9px;color:#30363d;letter-spacing:1px}
+.vol-val{font-size:11px;font-family:monospace}
+.toggle{text-align:center;font-size:10px;color:#30363d;padding-bottom:6px}
 .footer{margin-top:20px;padding:12px 0;border-top:1px solid #1c2333;font-size:10px;color:#30363d;line-height:1.8}
-
-.spinner{display:inline-block;width:8px;height:8px;border:2px solid #30363d;border-top-color:#00e676;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:5px;vertical-align:middle}
 </style>
-
 </head>
 <body>
 
-<!-- ROOT -->
+<div class="header">
+  <div class="header-left">
+    <div class="sub">MARKET SCANNER · DAILY BRIEFING</div>
+    <div class="title">TonyTrades 📊 <span style="font-size:11px;font-family:monospace;color:#00e676">● LIVE</span></div>
+  </div>
+  <div class="header-right">
+    <div style="color:#00e676;font-family:monospace;margin-bottom:2px">🔥 NBIS NEW ATH</div>
+    <div>May 7, 2026</div>
+  </div>
+</div>
 
-<div id="app"></div>
+<div class="banner">
+  <div class="label">TODAY'S THEMES · WEDNESDAY MAY 7, 2026</div>
+  <div class="text">NBIS hit a NEW ALL-TIME HIGH of $179.96 today — YTD gains now +110.8%, crushing NVDA's +16%. AMD +13.7% session gains validates the entire AI infrastructure thesis. NVDA holding $195-200 on Corning partnership and AMD sympathy. META broke $608 dark pool support on a green market day = distribution signal. TSLA rejected $400 again. NBIS earnings May 13 BEFORE MARKET OPEN = 6 days away.</div>
+  <div class="themes" id="themes"></div>
+</div>
+
+<div class="content">
+  <div class="snap" id="snap"></div>
+  <div class="filters" id="filters"></div>
+  <div id="cards"></div>
+  <div class="footer">
+    <div>📡 Prices: Robinhood · Yahoo Finance · CNBC · TradingView · Stockanalysis.com</div>
+    <div>🕐 Updated: May 7, 2026 · Market hours · Built by Claude for TonyTrades</div>
+    <div>⚠️ Not financial advice. Options involve substantial risk. Do your own research.</div>
+  </div>
+</div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-var TD_KEY = "7c60c7bb1c4d4ee293b95b6853231622";
-var TD_BASE = "https://api.twelvedata.com";
-var TICKERS = ["NVDA","SPY","NBIS","TSLA","META"];
-
-// ── STATE ─────────────────────────────────────────────────────────────────────
-var state = {
-  quotes: {},
-  loading: false,
-  lastUpdate: null,
-  priceStatus: "Connecting to Twelve Data...",
-  session: getSession(),
-  view: "all",
-  tab: "scanner",
-  openCards: {}
-};
-
-// ── SESSION ───────────────────────────────────────────────────────────────────
-function getSession(){
-  try{
-    var et=new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));
-    var h=et.getHours(),m=et.getMinutes(),d=et.getDay();
-    if(d===0||d===6) return "WEEKEND";
-    var mins=h*60+m;
-    if(mins>=240&&mins<570) return "PRE-MARKET";
-    if(mins>=570&&mins<960) return "MARKET OPEN";
-    if(mins>=960&&mins<1200) return "AFTER HOURS";
-    return "CLOSED";
-  }catch(e){ return "CLOSED"; }
-}
-function sessionColor(s){
-  if(s==="MARKET OPEN") return "#00e676";
-  if(s==="PRE-MARKET") return "#ffab00";
-  if(s==="AFTER HOURS") return "#b57bee";
-  return "#30363d";
-}
-
-// ── TWELVE DATA ───────────────────────────────────────────────────────────────
-async function fetchPrices(){
-  try{
-    var r=await fetch(TD_BASE+"/quote?symbol="+TICKERS.join(",")+"&apikey="+TD_KEY);
-    var j=await r.json();
-    if(j.status==="error") throw new Error(j.message);
-    var results={};
-    for(var i=0;i<TICKERS.length;i++){
-      var t=TICKERS[i];
-      var q=TICKERS.length===1?j:j[t];
-      if(q&&q.close){
-        var price=parseFloat(q.close);
-        var prev=parseFloat(q.previous_close||price);
-        var chg=price-prev;
-        var pct=prev?((chg/prev)*100).toFixed(2):"0.00";
-        results[t]={
-          price:price.toFixed(2),
-          pct:(chg>=0?"+":"")+pct,
-          high:parseFloat(q.high||price).toFixed(2),
-          low:parseFloat(q.low||price).toFixed(2),
-          open:parseFloat(q.open||price).toFixed(2),
-          volume:q.volume?parseInt(q.volume).toLocaleString():"--",
-          isPos:chg>=0
-        };
-      }
-    }
-    return results;
-  }catch(e){ console.error(e); return {}; }
-}
-
-// ── RESEARCH DATA ─────────────────────────────────────────────────────────────
-var SCAN={
-  date:"Tuesday, May 6, 2026",
-  themes:["IRAN STRAIT OF HORMUZ","OIL $110+","NBIS 52-WK HIGH +73% YTD","NVDA -7.8% PAST WEEK","TSLA ROBOTAXI EVENING HOURS","META CAPEX OVERHANG"],
-  reasoning:"Iran/US conflict in the Strait of Hormuz keeping markets on edge with oil above $110. NBIS hit new 52-week high $179.40 — up 73% YTD on $643M Eigen AI acquisition. NVDA under pressure from Google TPU competition, down 7.82% past week. TSLA robotaxi now running unsupervised during EVENING hours in Austin for the first time. META recovering from capex selloff but overhang persists.",
-  snap:[
-    {l:"OIL WTI",v:"$110+",c:"Iran",b:false},
-    {l:"VIX",v:"~16.5",c:"-2.7%",b:true},
-    {l:"GOLD",v:"$4,501",c:"Safe haven",b:true},
-    {l:"NBIS YTD",v:"+73%",c:"Leader",b:true},
-    {l:"NVDA 7D",v:"-7.82%",c:"Pressure",b:false}
-  ]
-};
-
-var AN={
-  NVDA:{name:"NVIDIA Corporation",sector:"Semiconductors/AI",sent:"Neutral",score:5,ivRank:58,pop:47,putCall:"PUT",conf:63,risk:"High",
-    s1:"$193",s2:"$185",r1:"$202",r2:"$210",
-    dp:[{level:"$200",size:"5.2M",type:"Resistance"},{level:"$193",size:"3.8M",type:"Support"}],
-    sweep:"Put sweep spotted Friday PM",
-    cat:"Google TPU competition + distribution below $200. Earnings May 20 is the real catalyst.",
-    news:"NVDA closed $196.85. Google confirmed selling TPUs externally. 37 analysts Buy rated, avg PT $272 (38% upside). Earnings May 20 est EPS $1.74. $500B US manufacturing pledge long term positive.",
-    buzz:"Bears: lower high vs Oct 2025. Bulls: $272 PT + May 20 earnings is the reset. Google TPU headline keeping sellers active.",
-    setup:"Critical support $193-$196. Hold $196 = bounce to $202. Break $193 = $185 gap fill. IV rank 58 = moderately expensive.",
-    play:"May 8 $195 Put — PoP 47%. Target $188-$192. Stop if $202 reclaimed on volume. 3 DTE = small size only."
-  },
-  SPY:{name:"SPDR S&P 500 ETF",sector:"Broad Market ETF",sent:"Neutral",score:6,ivRank:40,pop:55,putCall:"NEUTRAL",conf:55,risk:"Medium",
-    s1:"$715",s2:"$705",r1:"$722",r2:"$730",
-    dp:[{level:"$715",size:"8.6M",type:"Support"},{level:"$722",size:"4.1M",type:"Resistance"}],
-    sweep:"Mixed — no dominant direction",
-    cat:"Iran/Hormuz keeping pressure on. $715 massive institutional support. Hold = bull case, break = bears.",
-    news:"SPY around $718. S&P 500 at record highs after April historic close above 7,200. Iran conflict fluid. Oil $110+ = inflation risk.",
-    buzz:"Buy the dip if Iran fades. Dark pool $715 cluster held twice. Options flow balanced, no edge.",
-    setup:"Hold $715 = bullish. Buy $715-$718, target $722-$725. Break $713 = puts toward $705.",
-    play:"WAIT for confirmation. $715 holds = May $720 Call. Breaks $713 = May $708 Put. Do not force it."
-  },
-  NBIS:{name:"Nebius Group N.V.",sector:"AI Infrastructure/Neocloud",sent:"Bullish",score:9,ivRank:75,pop:65,putCall:"CALL",conf:85,risk:"High",
-    s1:"$168",s2:"$158",r1:"$179.40",r2:"$190",
-    dp:[{level:"$179.40",size:"2.1M",type:"Resistance"},{level:"$168",size:"3.4M",type:"Support"}],
-    sweep:"Heavy call sweep on the ask — institutional accumulation",
-    cat:"NEW 52-WEEK HIGH $179.40. $643M Eigen AI deal. $27B Meta + $19.4B Microsoft contracts. Up 73% YTD.",
-    news:"NBIS hit 52-week high $179.40. Goldman PT $205, BofA PT $175. Revenue up 503% YoY. $46B contracted backlog. Cramer: Stay close to Nebius.",
-    buzz:"Heavy call sweep on ask. 1.75x average volume. Goldman $205 PT = 17% more upside. Morgan Stanley $126 PT is the bear case.",
-    setup:"$179.40 = resistance. Break = $190+ opens up. Dip to $168-$172 = buy zone. IV rank 75 = use spreads not naked calls.",
-    play:"May $180/$195 Call Spread — IV rank 75, PoP 65%. Buy dip $168-$172. Goldman PT $205 target."
-  },
-  TSLA:{name:"Tesla Inc.",sector:"EV/Autonomy/AI",sent:"Bullish",score:7,ivRank:68,pop:56,putCall:"CALL",conf:65,risk:"High",
-    s1:"$370",s2:"$355",r1:"$400",r2:"$415",
-    dp:[{level:"$388",size:"4.2M",type:"Support"},{level:"$400",size:"2.8M",type:"Resistance"}],
-    sweep:"Mixed call/put — no clear direction",
-    cat:"Robotaxi UNSUPERVISED EVENING hours Austin — first time ever. 10B FSD miles. Dallas/Houston expansion.",
-    news:"TSLA around $392. Evening hours expansion in Austin is KEY milestone. Q1 beat EPS $0.41 vs $0.35. Next earnings July 29. Rejected 3x at $383.",
-    buzz:"Bulls: Evening expansion changes the timeline. Bears: 42 cars vs Waymo 500K rides/week. TradingView: rejected 3x at $383.",
-    setup:"$383 rejected 3 times = key resistance. Break above = $400 target. Hold $370 = bullish. IV rank 68 = use spreads.",
-    play:"May $390/$410 Call Spread — IV rank 68, PoP 56%. Robotaxi evening catalyst is real. Stop if $370 breaks."
-  },
-  META:{name:"Meta Platforms Inc.",sector:"Social Media/AI",sent:"Bearish",score:4,ivRank:45,pop:48,putCall:"PUT",conf:65,risk:"High",
-    s1:"$605",s2:"$590",r1:"$630",r2:"$645",
-    dp:[{level:"$608",size:"2.3M",type:"Support"},{level:"$630",size:"1.9M",type:"Resistance"}],
-    sweep:"Puts dominating options flow",
-    cat:"$125B-$145B capex overhang + Iran risk-off = double negative. Weak bounce low volume. $166 below ATH.",
-    news:"META around $610. Q1 revenue +33%, EPS +61% — strong fundamentals. BUT capex exploding to $145B. Market punishing spend without visible AI ROI.",
-    buzz:"Puts dominating flow. Below avg volume = weak bounce not reversal. $796 ATH feels far away.",
-    setup:"Bounce to $625-$635 = fade opportunity. Support $605. Break = $590. IV rank 45 = puts reasonably priced.",
-    play:"May $600 Put — IV rank 45, PoP 48%. Fade any bounce to $625+. Target $590."
-  }
-};
-
-var CONGRESS=[
-  {name:"Rep. Nancy Pelosi",party:"D",ticker:"NBIS",action:"BUY",amount:"$250K-$500K",date:"Apr 28"},
-  {name:"Sen. Mark Warner",party:"D",ticker:"META",action:"SELL",amount:"$50K-$100K",date:"Apr 25"},
-  {name:"Rep. Michael McCaul",party:"R",ticker:"NVDA",action:"BUY",amount:"$15K-$50K",date:"Apr 22"},
-  {name:"Sen. Tommy Tuberville",party:"R",ticker:"TSLA",action:"BUY",amount:"$15K-$50K",date:"Apr 20"}
+var THEMES = [
+  {t:"NBIS NEW ATH $179.96 🔥", bull:true},
+  {t:"AMD +13.7% SESSION", bull:true},
+  {t:"NVDA HOLDING $200", bull:true},
+  {t:"META BROKE SUPPORT", bull:false},
+  {t:"NBIS EARNINGS MAY 13", bull:true}
 ];
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+var SNAP = [
+  {l:"NBIS",  v:"$177.76", c:"NEW ATH $179.96", b:true},
+  {l:"AMD",   v:"$355.26", c:"+13.72% today",   b:true},
+  {l:"NVDA",  v:"$196.85", c:"Holding $200",     b:true},
+  {l:"TSLA",  v:"$387.26", c:"$400 rejected",    b:false},
+  {l:"META",  v:"$604.96", c:"-0.90% weak",      b:false}
+];
+
+var STOCKS = [
+  {
+    ticker:"NBIS", name:"Nebius Group N.V.", sector:"AI Infrastructure/Neocloud",
+    price:"177.76", change:"+5.4%", high:"179.96", low:"168.71", vol:"11.76M",
+    sent:"Bullish", score:10, iv:78, pop:70, pc:"CALL", conf:90, risk:"High",
+    s1:"$168", s2:"$158", r1:"$180", r2:"$195",
+    dp:[{l:"$179.96",s:"2.4M",t:"Resistance"},{l:"$168.71",s:"3.4M",t:"Support"}],
+    sweep:"Heavy call sweep — institutions loading into May 13 earnings",
+    cat:"🔥 NEW ALL-TIME HIGH $179.96. EARNINGS MAY 13 BEFORE OPEN. AMD +13.7% validates AI infra. YTD +110.8%. Goldman PT $205.",
+    news:"NBIS hit new all-time high $179.96 today. YTD gains +110.8%. EARNINGS MAY 13 BEFORE MARKET OPEN — analysts project 523% revenue growth 2026. Goldman PT $205. $46B contracted backlog. AMD blowout confirms AI infrastructure boom. Cantor Fitzgerald Overweight initiation.",
+    buzz:"ATH = momentum + FOMO. Earnings May 13 = binary event. Goldman $205 = 15% more upside. TradingView target $200-$209. Freedom Capital bear case: 'advanced far faster than fundamentals.' Beta 2.97 = moves hard.",
+    setup:"NEW ATH cleared $179.96. Next resistance $195, then $200-$209. Dip to $168 = buy zone. IV rank 78 = spreads over naked calls. Binary earnings event May 13 = size accordingly.",
+    play:"May 16 $180/$200 Call Spread — IV 78, PoP 70%. ATH breakout + earnings May 13 catalyst. Goldman PT $205. Stop below $158. Size small — binary event."
+  },
+  {
+    ticker:"NVDA", name:"NVIDIA Corporation", sector:"Semiconductors/AI",
+    price:"196.85", change:"+0.04%", high:"200.24", low:"195.80", vol:"109.4M",
+    sent:"Bullish", score:7, iv:55, pop:60, pc:"CALL", conf:68, risk:"Medium",
+    s1:"$195", s2:"$188", r1:"$202", r2:"$210",
+    dp:[{l:"$200",s:"5.2M",t:"Key Resistance"},{l:"$195",s:"3.8M",t:"Support"}],
+    sweep:"Call sweep — AMD sympathy buying",
+    cat:"Holding $195-$200. AMD +13.7% validates AI demand. Corning partnership. $200 is the key level to reclaim.",
+    news:"NVDA flat today but holding key support. AMD blowout confirms AI chip demand is real. Corning partnership for optical connectivity manufacturing. Pentagon AI deals confirmed. Earnings May 20 est EPS $1.74, revenue $78.6B. 37 analysts Buy, avg PT $272.",
+    buzz:"AMD beat = NVDA beat May 20 thesis building. $200 is the battleground. TradingView: hold $195 = recovery to $208 next week. Bears: lower high vs $216 ATH still in play.",
+    setup:"Hold $195 = bull. Reclaim $200 on volume = $208 next. Break $193 = $188 gap fill. AMD tailwind + Corning deal + May 20 earnings approaching = accumulation zone.",
+    play:"May 16 $200 Call — IV 55, PoP 60%. AMD validates AI demand. $200 reclaim = momentum. Stop if $193 breaks on volume."
+  },
+  {
+    ticker:"SPY", name:"SPDR S&P 500 ETF", sector:"Broad Market ETF",
+    price:"722.80", change:"+0.6%", high:"724.10", low:"719.50", vol:"62M",
+    sent:"Bullish", score:8, iv:37, pop:66, pc:"CALL", conf:72, risk:"Low",
+    s1:"$718", s2:"$715", r1:"$725", r2:"$730",
+    dp:[{l:"$715",s:"8.6M",t:"Support"},{l:"$725",s:"4.3M",t:"Resistance"}],
+    sweep:"Broad call sweep — risk-on across market",
+    cat:"ALL-TIME HIGHS. AMD +13.7% + Iran deal hopes + oil declining = risk-on. IV rank 37 = cheapest options on watchlist.",
+    news:"S&P at all-time highs. AMD blowout lifting all tech. Iran deal framework being discussed. Oil declining as tension eases. All 11 S&P sectors green. 73% of S&P companies beating EPS this season.",
+    buzz:"Full risk-on. AMD + Iran = buy everything. VIX falling. Cheapest IV in weeks. Momentum is your friend at ATH.",
+    setup:"ATH + AMD catalyst + Iran deal = buy dips. $718 is new support. $725 next resistance. IV rank 37 = best value options today. Stop below $715.",
+    play:"May $723 Call — IV 37, PoP 66%. ATH momentum + AMD tailwind. Cheapest options on board. Stop below $715."
+  },
+  {
+    ticker:"TSLA", name:"Tesla Inc.", sector:"EV/Autonomy/AI",
+    price:"387.26", change:"-0.5%", high:"402.09", low:"385.50", vol:"47.78M",
+    sent:"Neutral", score:6, iv:65, pop:54, pc:"NEUTRAL", conf:55, risk:"High",
+    s1:"$383", s2:"$370", r1:"$400", r2:"$415",
+    dp:[{l:"$388",s:"4.2M",t:"Support"},{l:"$400",s:"2.8M",t:"Resistance"}],
+    sweep:"Mixed — no clear directional sweep",
+    cat:"Hit $402 high then pulled back to $387. $400 rejected again. $383 support holding. Wait for confirmation.",
+    news:"TSLA hit $402.09 high today then pulled back to $387. $400 proved resistance again. FSD EU approval expected Q2-Q3 per Reuters. SpaceX IPO filing weeks away. Robotaxi evening expansion Austin continues. Next earnings July 29.",
+    buzz:"Hit $400 and got rejected — classic pattern. $383 support is key. Risk-on broad market but TSLA-specific selling after $400 rejection. FSD EU news is positive longer term.",
+    setup:"$400 rejection = near-term bearish. Hold $383 = neutral. Break $383 = $370 next. Need clean close above $400 for bull continuation. Straddle or sideline today.",
+    play:"NEUTRAL — Wait. Clean break above $400 = Call. Break below $383 = Put. No edge without confirmation."
+  },
+  {
+    ticker:"META", name:"Meta Platforms Inc.", sector:"Social Media/AI",
+    price:"604.96", change:"-0.90%", high:"614.20", low:"601.30", vol:"13.1M",
+    sent:"Bearish", score:4, iv:44, pop:47, pc:"PUT", conf:64, risk:"High",
+    s1:"$600", s2:"$590", r1:"$620", r2:"$635",
+    dp:[{l:"$608",s:"2.3M",t:"Broken Support"},{l:"$600",s:"1.8M",t:"Support"}],
+    sweep:"Put flow dominating",
+    cat:"Broke $608 dark pool support on a GREEN market day = distribution. -0.9% while S&P +0.6% = major relative weakness.",
+    news:"META -0.9% on a green market day = red flag for relative weakness. Broke below $608 dark pool support. $145B capex overhang unchanged. Q2 earnings needed to show AI ROI. Options puts dominating flow.",
+    buzz:"Selling on a green market day = institutions distributing. $608 support broken = bearish confirmation. $600 is the next floor. Until Q2 shows AI ROI this is a fade.",
+    setup:"$608 broken = bearish. $600 is next support. Break $600 = $590 opens. Any bounce to $615-$620 = fade opportunity. IV rank 44 = puts still reasonably priced.",
+    play:"May $598 Put — IV 44, PoP 47%. Broke $608 support on green day = distribution. Target $590. Stop if $615 reclaimed on volume."
+  }
+];
+
+var currentFilter = "all";
+var openCards = {};
+
 function scoreColor(s){ return s>=7?"#00e676":s<=4?"#ff1744":"#ffab00"; }
 function pcColor(p){ return p==="CALL"?"#00e676":p==="PUT"?"#ff1744":"#ffab00"; }
 
-function tag(label,color,sm){
-  var s=sm?"font-size:8px;padding:1px 5px":"font-size:9px;padding:2px 7px";
-  return '<span class="tag'+(sm?" tag-sm":"')+'" style="'+s+';color:'+color+';background:'+color+'18;border-color:'+color+'44">'+label+'</span>';
+function badge(text, color){
+  return '<span class="badge" style="color:'+color+';background:'+color+'18;border-color:'+color+'44">'+text+'</span>';
 }
 
-function bar(val,max,color,h){
-  h=h||4;
-  var pct=Math.min(100,(val/max)*100);
-  return '<div class="bar-wrap"><div class="bar-track" style="height:'+h+'px"><div class="bar-fill" style="height:'+h+'px;width:'+pct+'%;background:'+color+';box-shadow:0 0 6px '+color+'88"></div></div>';
+function barHTML(val, max, color, h){
+  h = h||4;
+  var pct = Math.min(100, (val/max)*100);
+  return '<div class="bar-wrap"><div class="bar-track" style="height:'+h+'px"><div class="bar-fill" style="width:'+pct+'%;height:'+h+'px;background:'+color+';box-shadow:0 0 6px '+color+'88"></div></div>';
 }
 
-function scoreBar(score){
-  var color=scoreColor(score);
-  return bar(score,10,color)+'<span class="bar-label" style="font-size:11px;color:'+color+';min-width:32px">'+score+'/10</span></div>';
-}
-
-function confBar(pct,type){
-  var color=pcColor(type);
-  return bar(pct,100,color,6)+'<span class="bar-label" style="font-size:12px;color:'+color+';min-width:40px">'+pct+'%</span></div>';
-}
-
-// ── RENDER CARD ───────────────────────────────────────────────────────────────
-function renderCard(ticker,idx){
-  var a=AN[ticker];
-  var q=state.quotes[ticker];
-  var isOpen=state.openCards[ticker];
-  var isTop=a.score>=9;
-  var scolor=scoreColor(a.score);
-  var pcolor=pcColor(a.putCall);
-  var ivColor=a.ivRank>=70?"#ff1744":a.ivRank>=40?"#ffab00":"#00e676";
-  var ivLabel=a.ivRank>=70?"IV HIGH":"IV MED";
-  if(a.ivRank<40) ivLabel="IV LOW";
-
-  var priceHTML="";
-  if(q){
-    var chgColor=q.isPos?"#00e676":"#ff1744";
-    priceHTML='<div class="card-price"><div class="card-price-val">$'+q.price+'</div><div class="card-price-chg" style="color:'+chgColor+'">'+q.pct+'%</div><div class="card-price-hl">H:$'+q.high+' L:$'+q.low+'</div></div>';
-  } else {
-    priceHTML='<div class="card-price"><div style="font-size:12px;color:#30363d">Loading...</div></div>';
-  }
-
-  var bodyHTML="";
-  if(isOpen){
-    var dpHTML=a.dp.map(function(d){
-      var c=d.type==="Support"?"#00e676":"#ff1744";
-      return '<div class="dp-card" style="background:'+c+'0a;border:1px solid '+c+'33"><div class="dp-type" style="color:'+c+'">'+d.type.toUpperCase()+'</div><div class="dp-level" style="color:'+c+'">'+d.level+'</div><div class="dp-size">'+d.size+' shares</div></div>';
-    }).join("");
-
-    var volHTML="";
-    if(q){
-      volHTML='<div class="vol-row"><div class="vol-item"><span>VOL  </span><span style="color:#ffab00">'+q.volume+'</span></div><div class="vol-item"><span>OPEN  </span><span style="color:#8b949e">$'+q.open+'</span></div><div class="vol-item"><span>HIGH  </span><span style="color:#00e676">$'+q.high+'</span></div><div class="vol-item"><span>LOW  </span><span style="color:#ff1744">$'+q.low+'</span></div></div>';
-    }
-
-    bodyHTML='<div class="card-body">'+
-      '<div class="option-play" style="background:'+pcolor+'0a;border:1px solid '+pcolor+'33">'+
-        '<div class="option-label" style="color:'+pcolor+'99">OPTION PLAY · '+a.putCall+' · '+a.conf+'% CONF · '+a.pop+'% PoP · IV RANK '+a.ivRank+'</div>'+
-        '<div class="option-text" style="color:'+pcolor+'">'+a.play+'</div>'+
-      '</div>'+
-      '<div class="dp-row"><div class="dp-label">🌑 DARK POOL LEVELS</div><div class="dp-cards">'+dpHTML+'</div></div>'+
-      '<div class="sweep-row"><span class="sweep-label">OPTIONS SWEEP  </span><span class="sweep-val">'+a.sweep+'</span></div>'+
-      '<div class="levels-row">'+
-        '<div class="levels-label">KEY PRICE LEVELS</div>'+
-        '<div class="levels-grid">'+
-          '<div class="level-card" style="background:#00e67608;border:1px solid #00e67622"><div class="level-label" style="color:#00e67688">SUPPORT 1</div><div class="level-val" style="color:#00e676">'+a.s1+'</div></div>'+
-          '<div class="level-card" style="background:#00e67608;border:1px solid #00e67622"><div class="level-label" style="color:#00e67688">SUPPORT 2</div><div class="level-val" style="color:#00e676">'+a.s2+'</div></div>'+
-          '<div class="level-card" style="background:#ff174408;border:1px solid #ff174422"><div class="level-label" style="color:#ff174488">RESIST 1</div><div class="level-val" style="color:#ff1744">'+a.r1+'</div></div>'+
-          '<div class="level-card" style="background:#ff174408;border:1px solid #ff174422"><div class="level-label" style="color:#ff174488">RESIST 2</div><div class="level-val" style="color:#ff1744">'+a.r2+'</div></div>'+
-        '</div>'+
-      '</div>'+
-      '<div class="setup-row"><div class="setup-label">TRADE SETUP</div><div class="setup-text">'+a.setup+'</div></div>'+
-      '<div class="grid2">'+
-        '<div><div class="section-label">NEWS & CATALYST</div><div class="section-text">'+a.news+'</div></div>'+
-        '<div><div class="section-label">SOCIAL BUZZ</div><div class="section-text">'+a.buzz+'</div></div>'+
-      '</div>'+
-      volHTML+
-    '</div>';
-  }
-
-  return '<div class="card'+(isTop?" top":"")+'" id="card-'+ticker+'" onclick="toggleCard(\''+ticker+'\')" style="animation-delay:'+(idx*0.08)+'s">'+
-    '<div class="card-header">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
-        '<div>'+
-          '<div class="card-tags">'+
-            '<span style="font-size:18px;font-weight:800;font-family:monospace;letter-spacing:1px;color:#e6edf3">$'+ticker+'</span>'+
-            tag(a.sent.toUpperCase(),scolor)+
-            tag(a.putCall+' '+a.conf+'%',pcolor)+
-            tag(ivLabel+' '+a.ivRank,ivColor,true)+
-            (isTop?tag("TOP PICK","#00e676"):"")+
-            (q?tag("LIVE","#00e676"):"")+
-            tag(a.risk.toUpperCase()+" RISK",a.risk==="High"?"#ff1744":a.risk==="Low"?"#00e676":"#ffab00")+
-          '</div>'+
-          '<div class="card-name">'+a.name+' · '+a.sector+'</div>'+
-        '</div>'+
-        priceHTML+
-      '</div>'+
-      scoreBar(a.score)+
-      '<div style="margin-top:10px">'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
-          '<span style="font-size:9px;color:#30363d;letter-spacing:2px">'+a.putCall+' CONFIDENCE</span>'+
-          '<span style="font-size:9px;color:#30363d">PoP: <span style="color:'+(a.pop>=60?"#00e676":a.pop>=45?"#ffab00":"#ff1744")+'">'+a.pop+'%</span></span>'+
-        '</div>'+
-        confBar(a.conf,a.putCall)+
-      '</div>'+
-      '<div class="card-cat"><span style="color:'+scolor+'cc">▸ </span>'+a.cat+'</div>'+
-    '</div>'+
-    bodyHTML+
-    '<div class="card-toggle">'+(isOpen?"▲ collapse":"▼ expand full analysis")+'</div>'+
-  '</div>';
-}
-
-// ── RENDER TABS ───────────────────────────────────────────────────────────────
-function renderScanner(){
-  var sorted=TICKERS.slice().sort(function(a,b){return (AN[b]?AN[b].score:5)-(AN[a]?AN[a].score:5);});
-  var filt=state.view==="all"?sorted:
-    state.view==="call"?sorted.filter(function(t){return AN[t]&&AN[t].putCall==="CALL";}):
-    state.view==="put"?sorted.filter(function(t){return AN[t]&&AN[t].putCall==="PUT";}):
-    sorted.filter(function(t){return AN[t]&&AN[t].putCall==="NEUTRAL";});
-
-  var callC=TICKERS.filter(function(t){return AN[t]&&AN[t].putCall==="CALL";}).length;
-  var putC=TICKERS.filter(function(t){return AN[t]&&AN[t].putCall==="PUT";}).length;
-  var neutC=TICKERS.filter(function(t){return AN[t]&&AN[t].putCall==="NEUTRAL";}).length;
-
-  var snapHTML=SCAN.snap.map(function(m){
-    return '<div class="snap-card"><div class="snap-label">'+m.l+'</div><div class="snap-val">'+m.v+'</div><div class="snap-chg" style="color:'+(m.b?"#00e676":"#ff1744")+'">'+m.c+'</div></div>';
+function renderThemes(){
+  var el = document.getElementById("themes");
+  el.innerHTML = THEMES.map(function(t){
+    var c = t.bull ? "#00e676" : "#ff1744";
+    return '<span class="badge" style="color:'+c+';background:'+c+'18;border-color:'+c+'44">'+t.t+'</span>';
   }).join("");
-
-  var v=state.view;
-  var filters=[
-    {k:"all",l:"ALL ("+TICKERS.length+")",cls:"active-all"},
-    {k:"call",l:"CALLS ("+callC+")",cls:"active-call"},
-    {k:"put",l:"PUTS ("+putC+")",cls:"active-put"},
-    {k:"neutral",l:"NEUTRAL ("+neutC+")",cls:"active-neutral"}
-  ].map(function(f){
-    return '<button class="filter-btn'+(v===f.k?" "+f.cls:"")+'" onclick="setView(\''+f.k+'\')">'+f.l+'</button>';
-  }).join("");
-
-  var cards=filt.map(function(t,i){return renderCard(t,i);}).join("");
-
-  return '<div class="snap-row">'+snapHTML+'</div><div class="filters">'+filters+'</div>'+cards;
 }
 
-function renderPremarket(){
-  var items=[
-    {t:"NVDA",gap:"-0.6% est",dir:"down",note:"Iran risk-off + Google TPU. Watch $193 support at open."},
-    {t:"SPY",gap:"-0.4% est",dir:"down",note:"Futures lower on Iran. $715 dark pool cluster is key."},
-    {t:"NBIS",gap:"+0.5% est",dir:"up",note:"52-week high momentum. Relative strength vs macro."},
-    {t:"TSLA",gap:"+0.3% est",dir:"up",note:"Robotaxi evening expansion. Watch $383 resistance."},
-    {t:"META",gap:"-0.8% est",dir:"down",note:"Double negative — Iran + capex overhang. Puts dominating."}
+function renderSnap(){
+  var el = document.getElementById("snap");
+  el.innerHTML = SNAP.map(function(m){
+    var c = m.b ? "#00e676" : "#ff1744";
+    return '<div class="snap-item"><div class="sl">'+m.l+'</div><div class="sv">'+m.v+'</div><div class="sc" style="color:'+c+'">'+m.c+'</div></div>';
+  }).join("");
+}
+
+function renderFilters(){
+  var el = document.getElementById("filters");
+  var callC = STOCKS.filter(function(s){return s.pc==="CALL";}).length;
+  var putC  = STOCKS.filter(function(s){return s.pc==="PUT";}).length;
+  var neutC = STOCKS.filter(function(s){return s.pc==="NEUTRAL";}).length;
+  var filters = [
+    {k:"all",    l:"ALL ("+STOCKS.length+")", ac:"active-all"},
+    {k:"call",   l:"CALLS ("+callC+")",       ac:"active"},
+    {k:"put",    l:"PUTS ("+putC+")",         ac:"active-put"},
+    {k:"neutral",l:"NEUTRAL ("+neutC+")",     ac:"active-neutral"}
   ];
-  return '<div style="font-size:9px;color:#ffab00;letter-spacing:3px;margin-bottom:14px">PRE-MARKET · 4:00 AM - 9:30 AM ET</div>'+
-    '<div style="background:#0d1117;border:1px solid #ff174433;border-radius:5px;padding:14px;margin-bottom:16px;font-size:12px;color:#ffaaaa;line-height:1.7">'+
-    '⚠️ Iran/US conflict in Strait of Hormuz driving risk-off. Oil $110+. Wait for open before sizing positions. NBIS and TSLA are relative strength plays if market stabilizes.</div>'+
-    items.map(function(s){
-      var c=s.dir==="up"?"#00e676":"#ff1744";
-      return '<div style="background:#0d1117;border:1px solid #1c2333;border-radius:4px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start">'+
-        '<div><span style="font-size:15px;font-weight:800;font-family:monospace;color:#e6edf3;margin-right:10px">$'+s.t+'</span><div style="font-size:11px;color:#8b949e;margin-top:4px">'+s.note+'</div></div>'+
-        '<div style="text-align:right"><div style="font-size:14px;font-weight:700;font-family:monospace;color:'+c+'">'+s.gap+'</div><div style="font-size:9px;color:'+c+'">'+s.dir.toUpperCase()+'</div></div>'+
-      '</div>';
-    }).join("")+
-    '<div style="margin-top:10px;font-size:10px;color:#30363d">Options do NOT trade pre-market. Confirm prices in Webull before trading.</div>';
+  el.innerHTML = filters.map(function(f){
+    var cls = "filter-btn" + (currentFilter===f.k ? " "+f.ac : "");
+    return '<button class="'+cls+'" onclick="setFilter(\''+f.k+'\')">'+f.l+'</button>';
+  }).join("");
 }
 
-function renderDarkpool(){
-  return '<div style="font-size:9px;color:#b57bee;letter-spacing:3px;margin-bottom:14px">🌑 DARK POOL LEVELS</div>'+
-    '<div style="font-size:11px;color:#8b949e;margin-bottom:16px;line-height:1.6">Institutional block trades off public exchanges. These levels act as key support/resistance.</div>'+
-    TICKERS.map(function(ticker){
-      var a=AN[ticker];var q=state.quotes[ticker];
-      var priceStr=q?"$"+q.price+" "+'<span style="color:'+(q.isPos?"#00e676":"#ff1744")+'">'+q.pct+'%</span>':"";
-      return '<div style="background:#0d1117;border:1px solid #b57bee22;border-radius:5px;padding:12px 16px;margin-bottom:10px">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-          '<span style="font-size:13px;font-weight:700;font-family:monospace;color:#e6edf3">$'+ticker+'</span>'+
-          '<span style="font-size:12px;font-family:monospace">'+priceStr+'</span>'+
-        '</div>'+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-          a.dp.map(function(d){
-            var c=d.type==="Support"?"#00e676":"#ff1744";
-            return '<div style="background:'+c+'0a;border:1px solid '+c+'33;border-radius:3px;padding:8px 14px;flex:1;min-width:120px">'+
-              '<div style="font-size:8px;color:'+c+';letter-spacing:2px;margin-bottom:3px">'+d.type.toUpperCase()+'</div>'+
-              '<div style="font-size:15px;font-family:monospace;font-weight:700;color:'+c+'">'+d.level+'</div>'+
-              '<div style="font-size:9px;color:#30363d">'+d.size+' shares printed</div>'+
-            '</div>';
-          }).join("")+
-        '</div>'+
-      '</div>';
-    }).join("")+
-    '<div style="margin-top:10px;font-size:10px;color:#30363d">Dark pool data sourced from public databases. Updated daily.</div>';
-}
+function renderCards(){
+  var el = document.getElementById("cards");
+  var sorted = STOCKS.slice().sort(function(a,b){return b.score-a.score;});
+  var filtered = currentFilter==="all" ? sorted :
+    currentFilter==="call"    ? sorted.filter(function(s){return s.pc==="CALL";}) :
+    currentFilter==="put"     ? sorted.filter(function(s){return s.pc==="PUT";}) :
+    sorted.filter(function(s){return s.pc==="NEUTRAL";});
 
-function renderCongress(){
-  return '<div style="font-size:9px;color:#ffab00;letter-spacing:3px;margin-bottom:14px">🏛️ CONGRESS TRADES · PUBLIC DISCLOSURE</div>'+
-    '<div style="font-size:11px;color:#8b949e;margin-bottom:16px;line-height:1.6">US Congress members must disclose trades within 45 days. Many have historically beaten the market.</div>'+
-    CONGRESS.map(function(c){
-      var color=c.action==="BUY"?"#00e676":"#ff1744";
-      var pcolor=c.party==="R"?"#ff6b6b":"#6b9fff";
-      return '<div class="congress-card">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
-          '<div>'+
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
-              '<span style="font-size:15px;font-weight:700;font-family:monospace;color:#e6edf3">$'+c.ticker+'</span>'+
-              tag(c.action,color)+
-              tag(c.party==="R"?"REP":"DEM",pcolor)+
-            '</div>'+
-            '<div style="font-size:11px;color:#e6edf3">'+c.name+'</div>'+
-          '</div>'+
-          '<div style="text-align:right">'+
-            '<div style="font-size:12px;color:'+color+';font-family:monospace;font-weight:700">'+c.amount+'</div>'+
-            '<div style="font-size:9px;color:#30363d;margin-top:3px">'+c.date+', 2026</div>'+
-          '</div>'+
-        '</div>'+
-      '</div>';
-    }).join("")+
-    '<div style="margin-top:10px;font-size:10px;color:#30363d">Up to 45-day reporting delay. Not financial advice.</div>';
-}
+  el.innerHTML = filtered.map(function(s){
+    var sc = scoreColor(s.score);
+    var pc = pcColor(s.pc);
+    var isTop = s.score >= 9;
+    var isOpen = openCards[s.ticker];
+    var isPos = s.change.charAt(0) === "+";
+    var ivLabel = s.iv>=70?"IV HIGH":s.iv>=40?"IV MED":"IV LOW";
+    var ivColor = s.iv>=70?"#ff1744":s.iv>=40?"#ffab00":"#00e676";
+    var riskColor = s.risk==="High"?"#ff1744":s.risk==="Low"?"#00e676":"#ffab00";
 
-function renderMovers(){
-  var keys=Object.keys(state.quotes);
-  if(keys.length===0) return '<div style="color:#30363d;font-size:12px">Hit Refresh to load live prices.</div>';
-  var sorted=TICKERS.filter(function(t){return state.quotes[t];}).sort(function(a,b){
-    return Math.abs(parseFloat(state.quotes[b].pct||0))-Math.abs(parseFloat(state.quotes[a].pct||0));
-  });
-  return '<div style="font-size:9px;color:#ffab00;letter-spacing:3px;margin-bottom:14px">MOVERS · SORTED BY % CHANGE · LIVE</div>'+
-    sorted.map(function(t){
-      var q=state.quotes[t];var a=AN[t];
-      var c=q.isPos?"#00e676":"#ff1744";
-      return '<div class="movers-card">'+
-        '<div>'+
-          '<span style="font-size:15px;font-weight:800;font-family:monospace;color:#e6edf3;margin-right:10px">$'+t+'</span>'+
-          '<span style="font-size:11px;color:#8b949e">'+a.name+'</span>'+
-          '<div style="font-size:10px;color:#30363d;margin-top:2px">H:$'+q.high+' L:$'+q.low+' Vol:'+q.volume+'</div>'+
-        '</div>'+
-        '<div style="text-align:right">'+
-          '<div style="font-size:16px;font-weight:800;font-family:monospace;color:#e6edf3">$'+q.price+'</div>'+
-          '<div style="font-size:13px;font-family:monospace;font-weight:600;color:'+c+'">'+q.pct+'%</div>'+
-        '</div>'+
+    var dpHTML = s.dp.map(function(d){
+      var c = d.t.includes("Support") ? "#00e676" : "#ff1744";
+      return '<div class="dp-card" style="background:'+c+'0a;border:1px solid '+c+'33">'+
+        '<div class="dp-type" style="color:'+c+'">'+d.t.toUpperCase()+'</div>'+
+        '<div class="dp-level" style="color:'+c+'">'+d.l+'</div>'+
+        '<div class="dp-size">'+d.s+' shares</div>'+
       '</div>';
     }).join("");
-}
 
-// ── MAIN RENDER ───────────────────────────────────────────────────────────────
-function render(){
-  var s=state.session;
-  var sColor=sessionColor(s);
-  var tabs=["scanner","premarket","darkpool","congress","movers"];
-  var tabLabels=["📊 SCANNER","🌅 PRE-MARKET","🌑 DARK POOL","🏛️ CONGRESS","🔥 MOVERS"];
-
-  var tabsHTML=tabs.map(function(t,i){
-    return '<button class="tab'+(state.tab===t?" active":"")+'" onclick="setTab(\''+t+'\')">'+tabLabels[i]+'</button>';
-  }).join("");
-
-  var themeHTML=SCAN.themes.map(function(t){
-    var c=t.includes("IRAN")||t.includes("OIL")||t.includes("NVDA")||t.includes("META")?"#ff1744":"#4d9cf8";
-    return tag(t,c);
-  }).join(" ");
-
-  var refreshBtn='<button class="refresh-btn" id="refresh-btn" onclick="doRefresh()">'+(state.loading?'<span class="spinner"></span>LOADING':'⟳ REFRESH')+'</button>';
-  if(state.loading){
-    document.getElementById("refresh-btn")&&(document.getElementById("refresh-btn").disabled=true);
-  }
-
-  var tabContent="";
-  if(state.tab==="scanner") tabContent=renderScanner();
-  else if(state.tab==="premarket") tabContent=renderPremarket();
-  else if(state.tab==="darkpool") tabContent=renderDarkpool();
-  else if(state.tab==="congress") tabContent=renderCongress();
-  else if(state.tab==="movers") tabContent=renderMovers();
-
-  var html=
-    '<div class="header">'+
-      '<div class="header-left">'+
-        '<div class="header-sub">MARKET SCANNER v3.0</div>'+
-        '<div class="header-title">TonyTrades <span style="font-size:11px;font-family:monospace;color:'+sColor+';animation:'+(s==="MARKET OPEN"?"pulse 1.5s infinite":"none")+'">● '+s+'</span></div>'+
-        '<div class="header-status">'+state.priceStatus+'</div>'+
+    var bodyHTML = '<div class="card-body'+(isOpen?" open":"")+'" id="body-'+s.ticker+'">'+
+      '<div class="play-box" style="background:'+pc+'0a;border:1px solid '+pc+'33">'+
+        '<div class="play-label" style="color:'+pc+'99">OPTION PLAY · '+s.pc+' · '+s.conf+'% CONF · '+s.pop+'% PoP · IV RANK '+s.iv+'</div>'+
+        '<div class="play-text" style="color:'+pc+'">'+s.play+'</div>'+
       '</div>'+
-      '<div style="display:flex;gap:10px;align-items:center">'+
-        (state.lastUpdate?'<div style="text-align:right"><div style="font-size:9px;color:#30363d">UPDATED</div><div style="font-size:10px;color:#8b949e;font-family:monospace">'+state.lastUpdate+'</div></div>':'')+
-        refreshBtn+
+      '<div class="dp-label">🌑 DARK POOL</div>'+
+      '<div class="dp-cards">'+dpHTML+'</div>'+
+      '<div class="sweep-box"><span class="sweep-label">OPTIONS SWEEP  </span><span class="sweep-val">'+s.sweep+'</span></div>'+
+      '<div class="levels-label">KEY PRICE LEVELS</div>'+
+      '<div class="levels-grid">'+
+        '<div class="level-card" style="background:#00e67608;border:1px solid #00e67622"><div class="level-label" style="color:#00e67688">SUPPORT 1</div><div class="level-val" style="color:#00e676">'+s.s1+'</div></div>'+
+        '<div class="level-card" style="background:#00e67608;border:1px solid #00e67622"><div class="level-label" style="color:#00e67688">SUPPORT 2</div><div class="level-val" style="color:#00e676">'+s.s2+'</div></div>'+
+        '<div class="level-card" style="background:#ff174408;border:1px solid #ff174422"><div class="level-label" style="color:#ff174488">RESIST 1</div><div class="level-val" style="color:#ff1744">'+s.r1+'</div></div>'+
+        '<div class="level-card" style="background:#ff174408;border:1px solid #ff174422"><div class="level-label" style="color:#ff174488">RESIST 2</div><div class="level-val" style="color:#ff1744">'+s.r2+'</div></div>'+
       '</div>'+
-    '</div>'+
-    '<div class="tabs">'+tabsHTML+'</div>'+
-    '<div class="banner">'+
-      '<div class="banner-label">TODAY\'S THEMES · '+SCAN.date+'</div>'+
-      '<div class="banner-text">'+SCAN.reasoning+'</div>'+
-      '<div class="themes">'+themeHTML+'</div>'+
-    '</div>'+
-    '<div class="content">'+
-      tabContent+
-      '<div class="footer">'+
-        '<div style="margin-bottom:3px">📡 Live prices: Twelve Data API · Research: Yahoo Finance, Robinhood, CNBC, TradingView, WSB</div>'+
-        '<div style="margin-bottom:3px">🔄 Auto-refreshes every 30s during market hours · Pre-market 4am-9:30am ET · After-hours 4pm-8pm ET</div>'+
-        '<div>⚠️ Not financial advice. Options involve substantial risk. Confirm prices in Webull before trading.</div>'+
+      '<div class="setup-box"><div class="setup-label">TRADE SETUP</div><div class="setup-text">'+s.setup+'</div></div>'+
+      '<div class="grid2">'+
+        '<div><div class="sec-label">NEWS & CATALYST</div><div class="sec-text">'+s.news+'</div></div>'+
+        '<div><div class="sec-label">SOCIAL BUZZ</div><div class="sec-text">'+s.buzz+'</div></div>'+
+      '</div>'+
+      '<div class="vol-row"><div><span class="vol-label">VOLUME  </span><span class="vol-val" style="color:#ffab00">'+s.vol+'</span></div>'+
+        '<div><span class="vol-label">HIGH  </span><span class="vol-val" style="color:#00e676">$'+s.high+'</span></div>'+
+        '<div><span class="vol-label">LOW  </span><span class="vol-val" style="color:#ff1744">$'+s.low+'</span></div>'+
       '</div>'+
     '</div>';
 
-  document.getElementById("app").innerHTML=html;
+    return '<div class="card'+(isTop?" top":"")+'" onclick="toggleCard(\''+s.ticker+'\')">'+
+      '<div class="card-head">'+
+        '<div class="card-row">'+
+          '<div>'+
+            '<div class="card-tags">'+
+              '<span class="ticker">$'+s.ticker+'</span>'+
+              badge(s.sent.toUpperCase(), sc)+
+              badge(s.pc+" "+s.conf+"%", pc)+
+              badge(ivLabel+" "+s.iv, ivColor)+
+              (isTop ? badge("🔥 ATH TODAY", "#00e676") : "")+
+              badge(s.risk.toUpperCase()+" RISK", riskColor)+
+            '</div>'+
+            '<div class="card-name">'+s.name+' · '+s.sector+'</div>'+
+          '</div>'+
+          '<div class="card-price">'+
+            '<div class="price-val">$'+s.price+'</div>'+
+            '<div class="price-chg" style="color:'+(isPos?"#00e676":"#ff1744")+'">'+s.change+'</div>'+
+            '<div class="price-hl">H:$'+s.high+' L:$'+s.low+'</div>'+
+          '</div>'+
+        '</div>'+
+        barHTML(s.score,10,sc)+'<span class="bar-val" style="font-size:11px;color:'+sc+';min-width:32px">'+s.score+'/10</span></div>'+
+        '<div style="margin-top:10px">'+
+          '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
+            '<span style="font-size:9px;color:#30363d;letter-spacing:2px">'+s.pc+' CONFIDENCE</span>'+
+            '<span style="font-size:9px;color:#30363d">PoP: <span style="color:'+(s.pop>=60?"#00e676":s.pop>=45?"#ffab00":"#ff1744")+'">'+s.pop+'%</span></span>'+
+          '</div>'+
+          barHTML(s.conf,100,pc,6)+'<span class="bar-val" style="font-size:12px;color:'+pc+';min-width:40px">'+s.conf+'%</span></div>'+
+        '</div>'+
+        '<div class="card-cat"><span style="color:'+sc+'cc">▸ </span>'+s.cat+'</div>'+
+      '</div>'+
+      bodyHTML+
+      '<div class="toggle">'+(isOpen?"▲ collapse":"▼ expand full analysis")+'</div>'+
+    '</div>';
+  }).join("");
 }
 
-// ── ACTIONS ───────────────────────────────────────────────────────────────────
 function toggleCard(ticker){
-  state.openCards[ticker]=!state.openCards[ticker];
-  render();
-}
-function setView(v){ state.view=v; render(); }
-function setTab(t){ state.tab=t; render(); }
-
-async function doRefresh(){
-  if(state.loading) return;
-  state.loading=true;
-  state.session=getSession();
-  render();
-  var q=await fetchPrices();
-  if(Object.keys(q).length>0){
-    state.quotes=q;
-    state.priceStatus="Live via Twelve Data · "+new Date().toLocaleTimeString();
-  } else {
-    state.priceStatus="Price fetch failed — will retry";
-  }
-  state.lastUpdate=new Date().toLocaleTimeString();
-  state.loading=false;
-  render();
+  openCards[ticker] = !openCards[ticker];
+  renderCards();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-render();
-doRefresh();
-setInterval(function(){
-  state.session=getSession();
-  var s=state.session;
-  if(s!=="WEEKEND"&&s!=="CLOSED") doRefresh();
-},30000);
+function setFilter(f){
+  currentFilter = f;
+  renderFilters();
+  renderCards();
+}
+
+// Init
+renderThemes();
+renderSnap();
+renderFilters();
+renderCards();
 </script>
-
 </body>
 </html>
