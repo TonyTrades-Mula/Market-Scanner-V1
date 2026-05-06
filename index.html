@@ -5,584 +5,89 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>TonyTrades Scanner</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#07090f;color:#e6edf3;font-family:Georgia,serif}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:#1c2333;border-radius:99px}
-button{font-family:monospace;cursor:pointer;border:none}
-button:hover{opacity:.85}
-a{color:inherit;text-decoration:none}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+body{background:#07090f;color:#e6edf3;font-family:monospace;padding:20px}
+h1{color:#00e676;font-size:24px;margin-bottom:16px}
+p{color:#8b949e;margin-bottom:8px;font-size:14px}
+.card{background:#0d1117;border:1px solid #1c2333;border-radius:6px;padding:16px;margin-bottom:10px}
+.bull{color:#00e676}.bear{color:#ff1744}.neutral{color:#ffab00}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
+<h1>TonyTrades Market Scanner v3.0</h1>
+<p>Live prices loading... Twelve Data connected.</p>
 
-var TD_KEY = “7c60c7bb1c4d4ee293b95b6853231622”;
-var TD_BASE = “https://api.twelvedata.com”;
-var TICKERS = [“NVDA”,“SPY”,“NBIS”,“TSLA”,“META”];
+<div class="card">
+  <div style="font-size:18px;font-weight:800;margin-bottom:8px">$NVDA <span class="bear">PUT 63%</span></div>
+  <div style="color:#8b949e">NVIDIA · Semiconductors/AI · Score: 5/10</div>
+  <div style="margin-top:8px;color:#ffab00">▸ Google TPU competition + distribution below $200. Earnings May 20.</div>
+</div>
 
-var C = {
-bg:”#07090f”, surface:”#0d1117”, border:”#1c2333”,
-bull:”#00e676”, bear:”#ff1744”, neutral:”#ffab00”,
-text:”#e6edf3”, muted:”#8b949e”, dim:”#30363d”,
-blue:”#4d9cf8”, purple:”#b57bee”
-};
+<div class="card">
+  <div style="font-size:18px;font-weight:800;margin-bottom:8px">$SPY <span class="neutral">NEUTRAL 55%</span></div>
+  <div style="color:#8b949e">SPDR S&P 500 ETF · Score: 6/10</div>
+  <div style="margin-top:8px;color:#ffab00">▸ Iran/Hormuz keeping pressure on. $715 key support level.</div>
+</div>
 
-function sc(s){ return s>=7?C.bull:s<=4?C.bear:C.neutral; }
-function pcColor(p){ return p===“CALL”?C.bull:p===“PUT”?C.bear:C.neutral; }
+<div class="card" style="border-color:#00e67644;box-shadow:0 0 14px #00e67622">
+  <div style="font-size:18px;font-weight:800;margin-bottom:8px">$NBIS <span class="bull">CALL 85% 🔥</span></div>
+  <div style="color:#8b949e">Nebius Group · AI Infrastructure · Score: 9/10</div>
+  <div style="margin-top:8px;color:#00e676">▸ NEW 52-WEEK HIGH $179.40. $643M Eigen AI deal. Up 73% YTD.</div>
+</div>
 
-function getSession(){
-var et = new Date(new Date().toLocaleString(“en-US”,{timeZone:“America/New_York”}));
-var h=et.getHours(), m=et.getMinutes(), d=et.getDay();
-if(d===0||d===6) return “WEEKEND”;
-var mins=h*60+m;
-if(mins>=240&&mins<570) return “PRE-MARKET”;
-if(mins>=570&&mins<960) return “MARKET OPEN”;
-if(mins>=960&&mins<1200) return “AFTER HOURS”;
-return “CLOSED”;
+<div class="card">
+  <div style="font-size:18px;font-weight:800;margin-bottom:8px">$TSLA <span class="bull">CALL 65%</span></div>
+  <div style="color:#8b949e">Tesla · EV/Autonomy/AI · Score: 7/10</div>
+  <div style="margin-top:8px;color:#00e676">▸ Robotaxi UNSUPERVISED EVENING hours Austin — first time ever.</div>
+</div>
+
+<div class="card">
+  <div style="font-size:18px;font-weight:800;margin-bottom:8px">$META <span class="bear">PUT 65%</span></div>
+  <div style="color:#8b949e">Meta Platforms · Social Media/AI · Score: 4/10</div>
+  <div style="margin-top:8px;color:#ff1744">▸ $145B capex overhang + Iran risk-off = double negative.</div>
+</div>
+
+<div id="prices" style="margin-top:20px;padding:14px;background:#0d1117;border:1px solid #1c2333;border-radius:6px">
+  <div style="font-size:9px;color:#30363d;letter-spacing:3px;margin-bottom:10px">LIVE PRICES · TWELVE DATA</div>
+  <div id="price-content" style="color:#8b949e;font-size:12px">Fetching live prices...</div>
+</div>
+
+<script>
+var TD_KEY = "7c60c7bb1c4d4ee293b95b6853231622";
+var TICKERS = ["NVDA","SPY","NBIS","TSLA","META"];
+
+async function loadPrices(){
+  var el = document.getElementById("price-content");
+  try{
+    var r = await fetch("https://api.twelvedata.com/quote?symbol="+TICKERS.join(",")+"&apikey="+TD_KEY);
+    var j = await r.json();
+    if(j.status==="error"){ el.textContent = "API Error: "+j.message; return; }
+    var html = "";
+    for(var i=0;i<TICKERS.length;i++){
+      var t=TICKERS[i];
+      var q=TICKERS.length===1?j:j[t];
+      if(q&&q.close){
+        var price=parseFloat(q.close);
+        var prev=parseFloat(q.previous_close||price);
+        var chg=((price-prev)/prev*100).toFixed(2);
+        var color=chg>=0?"#00e676":"#ff1744";
+        html+="<div style='display:flex;justify-content:space-between;margin-bottom:6px;padding:6px 0;border-bottom:1px solid #1c2333'>";
+        html+="<span style='font-weight:700'>$"+t+"</span>";
+        html+="<span><span style='color:#e6edf3;margin-right:12px'>$"+price.toFixed(2)+"</span><span style='color:"+color+"'>"+(chg>=0?"+":"")+chg+"%</span></span>";
+        html+="</div>";
+      }
+    }
+    el.innerHTML = html || "No data returned";
+    el.innerHTML += "<div style='font-size:9px;color:#30363d;margin-top:8px'>Updated "+new Date().toLocaleTimeString()+"</div>";
+  }catch(e){
+    el.textContent = "Fetch error: "+e.message;
+  }
 }
 
-function sessionColor(s){
-if(s===“MARKET OPEN”) return C.bull;
-if(s===“PRE-MARKET”) return C.neutral;
-if(s===“AFTER HOURS”) return C.purple;
-return C.dim;
-}
-
-async function fetchAllPrices(){
-try{
-var symbols = TICKERS.join(”,”);
-var r = await fetch(TD_BASE+”/quote?symbol=”+symbols+”&apikey=”+TD_KEY);
-var j = await r.json();
-if(j.status===“error”) throw new Error(j.message);
-var results = {};
-for(var i=0;i<TICKERS.length;i++){
-var t = TICKERS[i];
-var q = TICKERS.length===1 ? j : j[t];
-if(q && q.close){
-var price = parseFloat(q.close);
-var prev = parseFloat(q.previous_close||price);
-var chg = price - prev;
-var chgPct = prev ? ((chg/prev)*100).toFixed(2) : “0.00”;
-results[t] = {
-price: price.toFixed(2),
-change: chg>=0 ? “+”+chg.toFixed(2) : chg.toFixed(2),
-changePct: chg>=0 ? “+”+chgPct : chgPct,
-high: parseFloat(q.high||price).toFixed(2),
-low: parseFloat(q.low||price).toFixed(2),
-open: parseFloat(q.open||price).toFixed(2),
-volume: q.volume ? parseInt(q.volume).toLocaleString() : “–”,
-isPos: chg>=0,
-live: true
-};
-}
-}
-return results;
-} catch(e){
-console.error(“Twelve Data error:”, e.message);
-return {};
-}
-}
-
-var SCAN = {
-date: “Tuesday, May 6, 2026”,
-themes: [“IRAN STRAIT OF HORMUZ”, “OIL $110+”, “NBIS 52-WK HIGH +73% YTD”, “NVDA -7.8% PAST WEEK”, “TSLA ROBOTAXI EVENING HOURS”, “META CAPEX OVERHANG”],
-reasoning: “Iran/US conflict in the Strait of Hormuz keeping markets on edge with oil above $110. NBIS hit new 52-week high $179.40 — up 73% YTD on $643M Eigen AI acquisition. NVDA under pressure from Google TPU competition, down 7.82% past week, critical support $193 into May 20 earnings. TSLA robotaxi now running unsupervised during EVENING hours in Austin for the first time. META recovering from capex selloff but overhang persists.”,
-snap: [
-{l:“OIL WTI”, v:”$110+”, c:“Iran”, b:false},
-{l:“VIX”,     v:“~16.5”, c:”-2.7%”, b:true},
-{l:“GOLD”,    v:”$4,501”,c:“Safe haven”, b:true},
-{l:“NBIS YTD”,v:”+73%”,  c:“Leader”, b:true},
-{l:“NVDA 7D”, v:”-7.82%”,c:“Pressure”, b:false}
-]
-};
-
-var AN = {
-NVDA:{
-name:“NVIDIA Corporation”, sector:“Semiconductors/AI”,
-sent:“Neutral”, score:5, ivRank:58, pop:47,
-s1:”$193”, s2:”$185”, r1:”$202”, r2:”$210”,
-dpLevels:[{level:”$200”,size:“5.2M”,type:“Resistance”},{level:”$193”,size:“3.8M”,type:“Support”}],
-sweep:“Put sweep spotted Friday PM”,
-cat:“Google TPU competition + distribution below $200. Earnings May 20 is the real catalyst. Down 7.82% past week.”,
-news:“NVDA closed $196.85. Google confirmed selling TPUs externally. 37 analysts Buy rated avg PT $272 (38% upside). Earnings May 20 est EPS $1.74. $500B US manufacturing pledge long term positive.”,
-buzz:“Bears: lower high vs Oct 2025. Bulls: $272 PT + May 20 earnings is the reset. Google TPU headline keeping sellers active.”,
-setup:“Critical support $193-$196. Hold $196 = bounce to $202. Break $193 = $185 gap fill. IV rank 58 = moderately expensive.”,
-putCall:“PUT”, conf:63,
-play:“May 8 $195 Put — PoP 47%. Target $188-$192. Stop if $202 reclaimed on volume. 3 DTE = small size only.”,
-risk:“High”
-},
-SPY:{
-name:“SPDR S&P 500 ETF”, sector:“Broad Market ETF”,
-sent:“Neutral”, score:6, ivRank:40, pop:55,
-s1:”$715”, s2:”$705”, r1:”$722”, r2:”$730”,
-dpLevels:[{level:”$715”,size:“8.6M”,type:“Support”},{level:”$722”,size:“4.1M”,type:“Resistance”}],
-sweep:“Mixed - no dominant direction”,
-cat:“Iran/Hormuz noise keeping pressure on. $715 massive institutional support. Hold = bull case, break = bears.”,
-news:“SPY around $718. S&P 500 at record highs after April historic close above 7,200. Iran conflict fluid. Oil $110+ = inflation risk. VIX 16.5 = complacent market.”,
-buzz:“Buy the dip if Iran fades. Dark pool $715 cluster held twice. Options flow balanced, no edge.”,
-setup:“Hold $715 = bullish. Buy $715-$718, target $722-$725. Break $713 = puts toward $705. IV rank 40 = reasonably priced.”,
-putCall:“NEUTRAL”, conf:55,
-play:“WAIT for confirmation. $715 holds = May $720 Call. Breaks $713 = May $708 Put. Do not force it.”,
-risk:“Medium”
-},
-NBIS:{
-name:“Nebius Group N.V.”, sector:“AI Infrastructure/Neocloud”,
-sent:“Bullish”, score:9, ivRank:75, pop:65,
-s1:”$168”, s2:”$158”, r1:”$179.40”, r2:”$190”,
-dpLevels:[{level:”$179.40”,size:“2.1M”,type:“Resistance”},{level:”$168”,size:“3.4M”,type:“Support”}],
-sweep:“Heavy call sweep on the ask”,
-cat:“NEW 52-WEEK HIGH $179.40. $643M Eigen AI deal. $27B Meta + $19.4B Microsoft contracts. NVDA $2B equity stake. Up 73% YTD.”,
-news:“NBIS hit 52-week high $179.40. Goldman PT $205, BofA PT $175. Revenue up 503% YoY. $46B contracted backlog. Microsoft paid 40% of deal upfront. Cramer: Stay close to Nebius.”,
-buzz:“Heavy call sweep on ask = institutional accumulation. 1.75x average volume. Goldman $205 PT = 17% more upside from here.”,
-setup:”$179.40 = resistance. Break = $190+ opens up. Dip to $168-$172 = buy zone. IV rank 75 = use spreads not naked calls.”,
-putCall:“CALL”, conf:85,
-play:“May $180/$195 Call Spread — IV rank 75, PoP 65%. Buy dip $168-$172. Goldman PT $205 target.”,
-risk:“High”
-},
-TSLA:{
-name:“Tesla Inc.”, sector:“EV/Autonomy/AI”,
-sent:“Bullish”, score:7, ivRank:68, pop:56,
-s1:”$370”, s2:”$355”, r1:”$400”, r2:”$415”,
-dpLevels:[{level:”$388”,size:“4.2M”,type:“Support”},{level:”$400”,size:“2.8M”,type:“Resistance”}],
-sweep:“Mixed call/put - no clear direction”,
-cat:“Robotaxi UNSUPERVISED EVENING hours Austin - first time ever. 10B FSD miles milestone. Dallas/Houston expansion.”,
-news:“TSLA around $392. Evening hours expansion in Austin is the KEY milestone. Dallas/Houston added April. Q1 beat EPS $0.41 vs $0.35. Next earnings July 29.”,
-buzz:“Bulls: Evening expansion changes the timeline. Bears: 42 cars vs Waymo 500K rides/week. TradingView: rejected 3x at $383 resistance.”,
-setup:”$383 rejected 3 times = key resistance. Break above = $400 target. Hold $370 = bullish. IV rank 68 = use spreads.”,
-putCall:“CALL”, conf:65,
-play:“May $390/$410 Call Spread — IV rank 68, PoP 56%. Robotaxi evening catalyst is real. Stop if $370 breaks.”,
-risk:“High”
-},
-META:{
-name:“Meta Platforms Inc.”, sector:“Social Media/AI”,
-sent:“Bearish”, score:4, ivRank:45, pop:48,
-s1:”$605”, s2:”$590”, r1:”$630”, r2:”$645”,
-dpLevels:[{level:”$608”,size:“2.3M”,type:“Support”},{level:”$630”,size:“1.9M”,type:“Resistance”}],
-sweep:“Puts dominating options flow”,
-cat:”$125B-$145B capex overhang + Iran risk-off = double negative. Weak bounce low volume. $166 below ATH $796.”,
-news:“META around $610. Q1 revenue +33%, EPS +61% strong fundamentals. BUT capex exploding to $145B. Market punishing spend without visible AI ROI like GOOGL Cloud.”,
-buzz:“Puts dominating flow. Below avg volume = weak bounce not reversal. $796 ATH feels far away at $610.”,
-setup:“Bounce to $625-$635 = fade opportunity. Support $605. Break = $590. IV rank 45 = puts reasonably priced.”,
-putCall:“PUT”, conf:65,
-play:“May $600 Put — IV rank 45, PoP 48%. Fade any bounce to $625+. Target $590.”,
-risk:“High”
-}
-};
-
-var CONGRESS = [
-{name:“Rep. Nancy Pelosi”, party:“D”, ticker:“NBIS”, action:“BUY”, amount:”$250K-$500K”, date:“Apr 28”},
-{name:“Sen. Mark Warner”,  party:“D”, ticker:“META”, action:“SELL”,amount:”$50K-$100K”,  date:“Apr 25”},
-{name:“Rep. Michael McCaul”,party:“R”,ticker:“NVDA”, action:“BUY”, amount:”$15K-$50K”,   date:“Apr 22”},
-{name:“Sen. Tommy Tuberville”,party:“R”,ticker:“TSLA”,action:“BUY”,amount:”$15K-$50K”,   date:“Apr 20”}
-];
-
-function Tag(props){
-var label=props.label, color=props.color, sm=props.sm;
-return React.createElement(“span”,{style:{fontSize:sm?8:9,letterSpacing:1.2,fontWeight:700,background:color+“18”,color:color,border:“1px solid “+color+“44”,borderRadius:2,padding:sm?“1px 5px”:“2px 7px”,whiteSpace:“nowrap”}},label);
-}
-
-function Lvl(props){
-var label=props.label, val=props.val, color=props.color;
-return React.createElement(“div”,{style:{background:color+“0a”,border:“1px solid “+color+“22”,borderRadius:3,padding:“8px 12px”,flex:1,minWidth:80}},
-React.createElement(“div”,{style:{fontSize:8,color:color+“88”,letterSpacing:2,marginBottom:4}},label),
-React.createElement(“div”,{style:{fontSize:13,color:color,fontFamily:“monospace”,fontWeight:600}},val)
-);
-}
-
-function BarUI(props){
-var val=props.val, max=props.max, color=props.color, h=props.h||4;
-return React.createElement(“div”,{style:{flex:1,height:h,background:C.border,borderRadius:99}},
-React.createElement(“div”,{style:{width:Math.min(100,(val/max)*100)+”%”,height:“100%”,background:color,borderRadius:99,boxShadow:“0 0 6px “+color+“88”,transition:“width 1s ease”}})
-);
-}
-
-function ScoreBar(props){
-var score=props.score, color=sc(score);
-return React.createElement(“div”,{style:{display:“flex”,alignItems:“center”,gap:8}},
-React.createElement(BarUI,{val:score,max:10,color:color}),
-React.createElement(“span”,{style:{fontSize:11,color:color,fontFamily:“monospace”,fontWeight:700,minWidth:32}},score+”/10”)
-);
-}
-
-function ConfBar(props){
-var pct=props.pct, type=props.type, color=pcColor(type);
-return React.createElement(“div”,{style:{display:“flex”,alignItems:“center”,gap:8}},
-React.createElement(BarUI,{val:pct,max:100,color:color,h:6}),
-React.createElement(“span”,{style:{fontSize:12,color:color,fontFamily:“monospace”,fontWeight:800,minWidth:40}},pct+”%”)
-);
-}
-
-function Card(props){
-var ticker=props.ticker, quote=props.quote, idx=props.idx;
-var open_state = React.useState(false);
-var open = open_state[0], setOpen = open_state[1];
-var a = AN[ticker];
-if(!a) return null;
-var scolor = sc(a.score);
-var pcolor = pcColor(a.putCall);
-var isTop = a.score >= 9;
-
-return React.createElement(“div”,{
-onClick: function(){ setOpen(function(o){ return !o; }); },
-style:{
-background: isTop ? “#0a1a0a” : C.surface,
-border: “1px solid “ + (open ? scolor+“55” : isTop ? C.bull+“44” : C.border),
-borderRadius:6, marginBottom:10, cursor:“pointer”,
-transition:“all 0.3s”,
-boxShadow: open ? “0 0 24px “+scolor+“15” : isTop ? “0 0 14px “+C.bull+“22” : “none”,
-animation:“fadeUp 0.35s ease “+(idx*0.08)+“s both”,
-overflow:“hidden”
-}
-},
-// Card Header
-React.createElement(“div”,{style:{padding:“14px 18px”}},
-React.createElement(“div”,{style:{display:“flex”,justifyContent:“space-between”,alignItems:“flex-start”,marginBottom:10}},
-// Left side
-React.createElement(“div”,null,
-React.createElement(“div”,{style:{display:“flex”,alignItems:“center”,gap:6,marginBottom:4,flexWrap:“wrap”}},
-React.createElement(“span”,{style:{fontSize:18,fontWeight:800,color:C.text,fontFamily:“monospace”,letterSpacing:1}},”$”+ticker),
-React.createElement(Tag,{label:a.sent.toUpperCase(),color:scolor}),
-React.createElement(Tag,{label:a.putCall+” “+a.conf+”%”,color:pcolor}),
-React.createElement(Tag,{label:“IV “+(a.ivRank>=70?“HIGH”:a.ivRank>=40?“MED”:“LOW”)+” “+a.ivRank,color:a.ivRank>=70?C.bear:a.ivRank>=40?C.neutral:C.bull,sm:true}),
-isTop && React.createElement(Tag,{label:“TOP PICK”,color:C.bull}),
-quote && quote.live && React.createElement(Tag,{label:“LIVE”,color:C.bull}),
-React.createElement(Tag,{label:a.risk.toUpperCase()+” RISK”,color:a.risk===“High”?C.bear:a.risk===“Low”?C.bull:C.neutral})
-),
-React.createElement(“div”,{style:{fontSize:11,color:C.muted}},a.name+” · “+a.sector)
-),
-// Right side - price
-React.createElement(“div”,{style:{textAlign:“right”}},
-quote ? [
-React.createElement(“div”,{key:“p”,style:{fontSize:18,fontWeight:800,fontFamily:“monospace”,color:C.text}},”$”+quote.price),
-React.createElement(“div”,{key:“c”,style:{fontSize:13,fontFamily:“monospace”,fontWeight:600,color:quote.isPos?C.bull:C.bear}},quote.changePct+”%”),
-React.createElement(“div”,{key:“hl”,style:{fontSize:9,color:C.dim,marginTop:2}},“H:$”+quote.high+” L:$”+quote.low)
-] : React.createElement(“div”,{style:{fontSize:12,color:C.dim}},“Loading…”)
-)
-),
-React.createElement(ScoreBar,{score:a.score}),
-React.createElement(“div”,{style:{marginTop:10}},
-React.createElement(“div”,{style:{display:“flex”,justifyContent:“space-between”,marginBottom:4}},
-React.createElement(“span”,{style:{fontSize:9,color:C.dim,letterSpacing:2}},a.putCall+” CONFIDENCE”),
-React.createElement(“span”,{style:{fontSize:9,color:C.dim}},“PoP: “,React.createElement(“span”,{style:{color:a.pop>=60?C.bull:a.pop>=45?C.neutral:C.bear}},a.pop+”%”))
-),
-React.createElement(ConfBar,{pct:a.conf,type:a.putCall})
-),
-React.createElement(“div”,{style:{fontSize:11,color:C.muted,marginTop:9,lineHeight:1.6}},
-React.createElement(“span”,{style:{color:scolor+“cc”}},“▸ “),a.cat
-)
-),
-// Expanded content
-open && React.createElement(“div”,{style:{borderTop:“1px solid “+C.border,padding:“16px 18px”}},
-// Option play
-React.createElement(“div”,{style:{background:pcolor+“0a”,border:“1px solid “+pcolor+“33”,borderRadius:4,padding:“11px 14px”,marginBottom:14}},
-React.createElement(“div”,{style:{fontSize:9,color:pcolor+“99”,letterSpacing:2,marginBottom:5}},
-“OPTION PLAY · “+a.putCall+” · “+a.conf+”% CONF · “+a.pop+”% PoP · IV RANK “+a.ivRank
-),
-React.createElement(“div”,{style:{fontSize:13,color:pcolor,fontFamily:“monospace”,fontWeight:600,lineHeight:1.6}},a.play)
-),
-// Dark pool
-React.createElement(“div”,{style:{marginBottom:14}},
-React.createElement(“div”,{style:{fontSize:9,color:C.purple,letterSpacing:2,marginBottom:8}},“DARK POOL LEVELS”),
-React.createElement(“div”,{style:{display:“flex”,gap:8,flexWrap:“wrap”}},
-a.dpLevels.map(function(d,i){
-return React.createElement(“div”,{key:i,style:{background:C.purple+“0a”,border:“1px solid “+C.purple+“33”,borderRadius:3,padding:“8px 12px”,flex:1,minWidth:100}},
-React.createElement(“div”,{style:{fontSize:8,color:C.purple+“88”,letterSpacing:2,marginBottom:3}},d.type.toUpperCase()),
-React.createElement(“div”,{style:{fontSize:14,color:C.purple,fontFamily:“monospace”,fontWeight:700}},d.level),
-React.createElement(“div”,{style:{fontSize:9,color:C.dim}},d.size+” shares”)
-);
-})
-)
-),
-// Sweep
-React.createElement(“div”,{style:{marginBottom:14,background:”#0a0a1a”,border:“1px solid “+C.blue+“22”,borderRadius:3,padding:“8px 14px”}},
-React.createElement(“span”,{style:{fontSize:9,color:C.blue+“88”,letterSpacing:2}},“OPTIONS SWEEP  “),
-React.createElement(“span”,{style:{fontSize:11,color:C.blue}},a.sweep)
-),
-// Key levels
-React.createElement(“div”,{style:{marginBottom:14}},
-React.createElement(“div”,{style:{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:8}},“KEY PRICE LEVELS”),
-React.createElement(“div”,{style:{display:“flex”,gap:8,flexWrap:“wrap”}},
-React.createElement(Lvl,{label:“SUPPORT 1”,val:a.s1,color:C.bull}),
-React.createElement(Lvl,{label:“SUPPORT 2”,val:a.s2,color:C.bull}),
-React.createElement(Lvl,{label:“RESIST 1”, val:a.r1,color:C.bear}),
-React.createElement(Lvl,{label:“RESIST 2”, val:a.r2,color:C.bear})
-)
-),
-// Trade setup
-React.createElement(“div”,{style:{background:”#0a1628”,border:“1px solid #1e3a5f”,borderRadius:4,padding:“11px 14px”,marginBottom:14}},
-React.createElement(“div”,{style:{fontSize:9,color:C.blue+“99”,letterSpacing:2,marginBottom:5}},“TRADE SETUP”),
-React.createElement(“div”,{style:{fontSize:12,color:”#a8ccf0”,lineHeight:1.7}},a.setup)
-),
-// News + buzz
-React.createElement(“div”,{style:{display:“grid”,gridTemplateColumns:“1fr 1fr”,gap:14,marginBottom:12}},
-React.createElement(“div”,null,
-React.createElement(“div”,{style:{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:6}},“NEWS & CATALYST”),
-React.createElement(“div”,{style:{fontSize:11,color:C.muted,lineHeight:1.7}},a.news)
-),
-React.createElement(“div”,null,
-React.createElement(“div”,{style:{fontSize:9,color:C.dim,letterSpacing:2,marginBottom:6}},“SOCIAL BUZZ”),
-React.createElement(“div”,{style:{fontSize:11,color:C.muted,lineHeight:1.7}},a.buzz)
-)
-),
-// Volume
-quote && quote.volume && React.createElement(“div”,{style:{borderTop:“1px solid “+C.border,paddingTop:10,display:“flex”,gap:20,flexWrap:“wrap”}},
-React.createElement(“div”,null,React.createElement(“span”,{style:{fontSize:9,color:C.dim,letterSpacing:1}},“VOL  “),React.createElement(“span”,{style:{fontSize:11,color:C.neutral,fontFamily:“monospace”}},quote.volume)),
-quote.open && React.createElement(“div”,null,React.createElement(“span”,{style:{fontSize:9,color:C.dim,letterSpacing:1}},“OPEN  “),React.createElement(“span”,{style:{fontSize:11,color:C.muted,fontFamily:“monospace”}},”$”+quote.open)),
-React.createElement(“div”,null,React.createElement(“span”,{style:{fontSize:9,color:C.dim,letterSpacing:1}},“HIGH  “),React.createElement(“span”,{style:{fontSize:11,color:C.bull,fontFamily:“monospace”}},”$”+quote.high)),
-React.createElement(“div”,null,React.createElement(“span”,{style:{fontSize:9,color:C.dim,letterSpacing:1}},“LOW  “),React.createElement(“span”,{style:{fontSize:11,color:C.bear,fontFamily:“monospace”}},”$”+quote.low))
-)
-),
-React.createElement(“div”,{style:{textAlign:“center”,fontSize:10,color:C.dim,paddingBottom:6}},open?“▲ collapse”:“▼ expand full analysis”)
-);
-}
-
-function App(){
-var quotesState = React.useState({});
-var quotes = quotesState[0], setQuotes = quotesState[1];
-var lastRState = React.useState(null);
-var lastR = lastRState[0], setLastR = lastRState[1];
-var loadingState = React.useState(false);
-var loading = loadingState[0], setLoading = loadingState[1];
-var statusState = React.useState(“Connecting to Twelve Data…”);
-var priceStatus = statusState[0], setPriceStatus = statusState[1];
-var sessionState = React.useState(getSession());
-var session = sessionState[0], setSession = sessionState[1];
-var viewState = React.useState(“all”);
-var view = viewState[0], setView = viewState[1];
-var tabState = React.useState(“scanner”);
-var tab = tabState[0], setTab = tabState[1];
-
-var refresh = React.useCallback(async function(){
-setLoading(true);
-setSession(getSession());
-var newQ = await fetchAllPrices();
-if(Object.keys(newQ).length > 0){
-setQuotes(newQ);
-setPriceStatus(“Live via Twelve Data · “+new Date().toLocaleTimeString());
-} else {
-setPriceStatus(“Price fetch failed — will retry”);
-}
-setLastR(new Date());
-setLoading(false);
-}, []);
-
-React.useEffect(function(){
-refresh();
-var id = setInterval(function(){
-var s = getSession();
-setSession(s);
-if(s !== “WEEKEND” && s !== “CLOSED”) refresh();
-}, 30000);
-return function(){ clearInterval(id); };
-}, []);
-
-var sorted = TICKERS.slice().sort(function(a,b){ return (AN[b]?AN[b].score:5)-(AN[a]?AN[a].score:5); });
-var filt = view===“all” ? sorted :
-view===“call” ? sorted.filter(function(t){ return AN[t]&&AN[t].putCall===“CALL”; }) :
-view===“put”  ? sorted.filter(function(t){ return AN[t]&&AN[t].putCall===“PUT”; }) :
-sorted.filter(function(t){ return AN[t]&&AN[t].putCall===“NEUTRAL”; });
-
-var callC = TICKERS.filter(function(t){ return AN[t]&&AN[t].putCall===“CALL”; }).length;
-var putC  = TICKERS.filter(function(t){ return AN[t]&&AN[t].putCall===“PUT”; }).length;
-var neutC = TICKERS.filter(function(t){ return AN[t]&&AN[t].putCall===“NEUTRAL”; }).length;
-var sColor = sessionColor(session);
-
-return React.createElement(“div”,{style:{minHeight:“100vh”,background:C.bg,color:C.text}},
-
-```
-// Header
-React.createElement("div",{style:{borderBottom:"1px solid "+C.border,padding:"0 20px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:C.bg,zIndex:100}},
-  React.createElement("div",{style:{padding:"12px 0"}},
-    React.createElement("div",{style:{fontSize:9,letterSpacing:4,color:C.dim,marginBottom:2}},"MARKET SCANNER v3.0"),
-    React.createElement("div",{style:{fontSize:19,fontWeight:700,color:C.text}},
-      "TonyTrades ",
-      React.createElement("span",{style:{fontSize:11,fontFamily:"monospace",color:sColor,animation:session==="MARKET OPEN"?"pulse 1.5s infinite":"none"}},"● "+session)
-    ),
-    React.createElement("div",{style:{fontSize:9,color:C.dim,marginTop:2}},priceStatus)
-  ),
-  React.createElement("div",{style:{display:"flex",gap:10,alignItems:"center"}},
-    lastR && React.createElement("div",{style:{textAlign:"right"}},
-      React.createElement("div",{style:{fontSize:9,color:C.dim}},"UPDATED"),
-      React.createElement("div",{style:{fontSize:10,color:C.muted,fontFamily:"monospace"}},lastR.toLocaleTimeString())
-    ),
-    React.createElement("button",{
-      onClick:refresh, disabled:loading,
-      style:{background:loading?C.surface:"#00e67618",border:"1px solid "+(loading?C.border:C.bull+"55"),color:loading?C.dim:C.bull,borderRadius:3,padding:"7px 12px",fontSize:10,fontWeight:700,letterSpacing:1}
-    },
-      loading ?
-        React.createElement("span",{style:{display:"flex",alignItems:"center",gap:5}},
-          React.createElement("span",{style:{display:"inline-block",width:8,height:8,border:"2px solid "+C.dim,borderTopColor:C.bull,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}),
-          "LOADING"
-        ) : "⟳ REFRESH"
-    )
-  )
-),
-
-// Nav tabs
-React.createElement("div",{style:{display:"flex",borderBottom:"1px solid "+C.border,padding:"0 20px",overflowX:"auto"}},
-  [{k:"scanner",l:"SCANNER"},{k:"premarket",l:"PRE-MARKET"},{k:"darkpool",l:"DARK POOL"},{k:"congress",l:"CONGRESS"},{k:"movers",l:"MOVERS"}].map(function(t){
-    return React.createElement("button",{key:t.k,onClick:function(){ setTab(t.k); },
-      style:{background:"none",color:tab===t.k?C.text:C.dim,fontSize:10,letterSpacing:1,padding:"11px 14px",borderBottom:tab===t.k?"2px solid "+C.bull:"2px solid transparent",whiteSpace:"nowrap"}
-    },t.l);
-  })
-),
-
-// Theme banner
-React.createElement("div",{style:{background:"#0a1628",borderBottom:"1px solid #1e3a5f",padding:"10px 20px"}},
-  React.createElement("div",{style:{fontSize:9,color:C.blue+"99",letterSpacing:2,marginBottom:5}},"TODAY'S THEMES · "+SCAN.date),
-  React.createElement("div",{style:{fontSize:11,color:"#a8ccf0",lineHeight:1.7,marginBottom:8}},SCAN.reasoning),
-  React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
-    SCAN.themes.map(function(t){
-      return React.createElement(Tag,{key:t,label:t,color:t.includes("OIL")||t.includes("IRAN")||t.includes("NVDA")||t.includes("META")?C.bear:C.blue});
-    })
-  )
-),
-
-// Content
-React.createElement("div",{style:{padding:"16px 20px"}},
-
-  // SCANNER TAB
-  tab==="scanner" && React.createElement("div",null,
-    // Snap
-    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}},
-      SCAN.snap.map(function(m){
-        return React.createElement("div",{key:m.l,style:{flex:1,minWidth:80,background:C.surface,border:"1px solid "+C.border,borderRadius:4,padding:"8px 12px"}},
-          React.createElement("div",{style:{fontSize:7,color:C.dim,letterSpacing:2,marginBottom:2}},m.l),
-          React.createElement("div",{style:{fontSize:13,fontWeight:700,fontFamily:"monospace",color:C.text}},m.v),
-          React.createElement("div",{style:{fontSize:9,color:m.b?C.bull:C.bear}},m.c)
-        );
-      })
-    ),
-    // Filter tabs
-    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}},
-      [{k:"all",l:"ALL ("+TICKERS.length+")",c:C.text},{k:"call",l:"CALLS ("+callC+")",c:C.bull},{k:"put",l:"PUTS ("+putC+")",c:C.bear},{k:"neutral",l:"NEUTRAL ("+neutC+")",c:C.neutral}].map(function(f){
-        return React.createElement("button",{key:f.k,onClick:function(){ setView(f.k); },
-          style:{background:view===f.k?f.c+"22":C.surface,border:"1px solid "+(view===f.k?f.c+"66":C.border),color:view===f.k?f.c:C.muted,borderRadius:3,padding:"6px 14px",fontSize:10,fontWeight:700,letterSpacing:1.5}
-        },f.l);
-      })
-    ),
-    // Cards
-    filt.map(function(t,i){
-      return React.createElement(Card,{key:t,ticker:t,quote:quotes[t],idx:i});
-    })
-  ),
-
-  // PRE-MARKET TAB
-  tab==="premarket" && React.createElement("div",null,
-    React.createElement("div",{style:{fontSize:9,color:C.neutral,letterSpacing:3,marginBottom:14}},"PRE-MARKET · 4:00 AM - 9:30 AM ET"),
-    [{t:"NVDA",gap:"-0.6% est",dir:"down",note:"Iran risk-off + Google TPU. Watch $193 support at open."},
-     {t:"SPY", gap:"-0.4% est",dir:"down",note:"Futures lower on Iran. $715 dark pool cluster is key."},
-     {t:"NBIS",gap:"+0.5% est",dir:"up",  note:"52-week high momentum. Relative strength vs macro."},
-     {t:"TSLA",gap:"+0.3% est",dir:"up",  note:"Robotaxi evening expansion catalyst. Watch $383 resistance."},
-     {t:"META",gap:"-0.8% est",dir:"down",note:"Double negative - Iran + capex overhang. Puts dominating."}
-    ].map(function(s,i){
-      return React.createElement("div",{key:i,style:{background:C.surface,border:"1px solid "+C.border,borderRadius:4,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
-        React.createElement("div",null,
-          React.createElement("span",{style:{fontSize:15,fontWeight:800,fontFamily:"monospace",color:C.text,marginRight:10}},"$"+s.t),
-          React.createElement("div",{style:{fontSize:11,color:C.muted,marginTop:4}},s.note)
-        ),
-        React.createElement("div",{style:{textAlign:"right"}},
-          React.createElement("div",{style:{fontSize:14,fontWeight:700,fontFamily:"monospace",color:s.dir==="up"?C.bull:C.bear}},s.gap),
-          React.createElement("div",{style:{fontSize:9,color:s.dir==="up"?C.bull:C.bear}},s.dir==="up"?"GAP UP":"GAP DOWN")
-        )
-      );
-    })
-  ),
-
-  // DARK POOL TAB
-  tab==="darkpool" && React.createElement("div",null,
-    React.createElement("div",{style:{fontSize:9,color:C.purple,letterSpacing:3,marginBottom:14}},"DARK POOL LEVELS"),
-    TICKERS.map(function(ticker){
-      var a=AN[ticker]; var q=quotes[ticker];
-      if(!a) return null;
-      return React.createElement("div",{key:ticker,style:{background:C.surface,border:"1px solid "+C.purple+"22",borderRadius:5,padding:"12px 16px",marginBottom:10}},
-        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
-          React.createElement("span",{style:{fontSize:13,fontWeight:700,fontFamily:"monospace",color:C.text}},"$"+ticker),
-          q && React.createElement("span",{style:{fontSize:12,fontFamily:"monospace",color:q.isPos?C.bull:C.bear}},"$"+q.price+" "+q.changePct+"%")
-        ),
-        React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
-          a.dpLevels.map(function(d,i){
-            return React.createElement("div",{key:i,style:{background:d.type==="Support"?C.bull+"0a":C.bear+"0a",border:"1px solid "+(d.type==="Support"?C.bull:C.bear)+"33",borderRadius:3,padding:"8px 14px",flex:1,minWidth:120}},
-              React.createElement("div",{style:{fontSize:8,color:d.type==="Support"?C.bull:C.bear,letterSpacing:2,marginBottom:3}},d.type.toUpperCase()),
-              React.createElement("div",{style:{fontSize:15,fontFamily:"monospace",fontWeight:700,color:d.type==="Support"?C.bull:C.bear}},d.level),
-              React.createElement("div",{style:{fontSize:9,color:C.dim}},d.size+" shares printed")
-            );
-          })
-        )
-      );
-    })
-  ),
-
-  // CONGRESS TAB
-  tab==="congress" && React.createElement("div",null,
-    React.createElement("div",{style:{fontSize:9,color:C.neutral,letterSpacing:3,marginBottom:14}},"CONGRESS TRADES · PUBLIC DISCLOSURE"),
-    CONGRESS.map(function(c,i){
-      return React.createElement("div",{key:i,style:{background:C.surface,border:"1px solid "+C.border,borderRadius:5,padding:"12px 16px",marginBottom:10}},
-        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
-          React.createElement("div",null,
-            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:4}},
-              React.createElement("span",{style:{fontSize:15,fontWeight:700,fontFamily:"monospace",color:C.text}},"$"+c.ticker),
-              React.createElement(Tag,{label:c.action,color:c.action==="BUY"?C.bull:C.bear}),
-              React.createElement(Tag,{label:c.party==="R"?"REP":"DEM",color:c.party==="R"?"#ff6b6b":"#6b9fff"})
-            ),
-            React.createElement("div",{style:{fontSize:11,color:C.text}},c.name)
-          ),
-          React.createElement("div",{style:{textAlign:"right"}},
-            React.createElement("div",{style:{fontSize:12,color:c.action==="BUY"?C.bull:C.bear,fontFamily:"monospace",fontWeight:700}},c.amount),
-            React.createElement("div",{style:{fontSize:9,color:C.dim,marginTop:3}},c.date+", 2026")
-          )
-        )
-      );
-    })
-  ),
-
-  // MOVERS TAB
-  tab==="movers" && React.createElement("div",null,
-    React.createElement("div",{style:{fontSize:9,color:C.neutral,letterSpacing:3,marginBottom:14}},"TODAY'S MOVERS · LIVE"),
-    Object.keys(quotes).length===0 ?
-      React.createElement("div",{style:{color:C.dim,fontSize:12}},"Hit Refresh to load prices.") :
-      TICKERS.filter(function(t){ return quotes[t]; })
-        .sort(function(a,b){ return Math.abs(parseFloat(quotes[b].changePct||0))-Math.abs(parseFloat(quotes[a].changePct||0)); })
-        .map(function(t,i){
-          var q=quotes[t]; var a=AN[t];
-          return React.createElement("div",{key:t,style:{background:C.surface,border:"1px solid "+C.border,borderRadius:4,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
-            React.createElement("div",null,
-              React.createElement("span",{style:{fontSize:15,fontWeight:700,fontFamily:"monospace",color:C.text,marginRight:10}},"$"+t),
-              React.createElement("span",{style:{fontSize:11,color:C.muted}},a?a.name:""),
-              React.createElement("div",{style:{fontSize:10,color:C.dim,marginTop:2}},"H:$"+q.high+" L:$"+q.low+" Vol:"+q.volume)
-            ),
-            React.createElement("div",{style:{textAlign:"right"}},
-              React.createElement("div",{style:{fontSize:16,fontWeight:800,fontFamily:"monospace",color:C.text}},"$"+q.price),
-              React.createElement("div",{style:{fontSize:13,fontFamily:"monospace",fontWeight:600,color:q.isPos?C.bull:C.bear}},q.changePct+"%")
-            )
-          );
-        })
-  ),
-
-  // Footer
-  React.createElement("div",{style:{marginTop:20,padding:"12px 0",borderTop:"1px solid "+C.border,fontSize:10,color:C.dim,lineHeight:1.8}},
-    React.createElement("div",{style:{marginBottom:3}},"Live prices: Twelve Data API · Research: Yahoo Finance, Robinhood, CNBC, TradingView, WSB"),
-    React.createElement("div",{style:{marginBottom:3}},"Auto-refreshes every 30s during market hours · Pre-market 4am-9:30am ET · After-hours 4pm-8pm ET"),
-    React.createElement("div",null,"Not financial advice. Options involve substantial risk. Confirm prices in Webull before trading.")
-  )
-)
-
-
-
-);
-}
-
-ReactDOM.createRoot(document.getElementById(“root”)).render(React.createElement(App));
-
+loadPrices();
+setInterval(loadPrices, 30000);
 </script>
+
 </body>
 </html>
